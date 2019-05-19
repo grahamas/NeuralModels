@@ -1,0 +1,4 @@
+name = "BioNeuralNetworkModels"
+uuid = "a199b2c4-7a51-11e9-2fe1-b9a1a5fe2912"
+authors = ["Graham Smith <grahamas@gmail.com>"]
+version = "0.1.0"
