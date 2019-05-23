@@ -35,6 +35,7 @@ A Lattice of points with `extent` describing the length along each dimension and
     extent::NTuple{N,T}
     n_points::NTuple{N,Int}
 end
+Lattice{T,1}(; extent::T=nothing, n_points::Int=nothing) where {T} = Lattice(; extent=(extent,), n_points=(n_points,))
 distance_metric(lattice::Lattice, edge) = euclidean_metric(lattice)
 
 
@@ -129,7 +130,7 @@ end
 """
     get_space_origin_idx(space)
 
-Return the coordinate of the zero point in `space`. Without respect to populations.
+Return the coordinate of the zero point in `space`.
 
 # Example
 ```jldoctest
@@ -142,9 +143,6 @@ CartesianIndex(6,)
 julia> collect(Simulation73.calculate(segment))[origin_idx] == 0.0
 true
 
-julia> Simulation73.get_space_origin_idx(Pops{2}(segment))
-CartesianIndex(6,)
-
 julia> grid = Grid((10.0,50.0), (11, 13))
 Grid{Float64}((10.0, 50.0), (11, 13))
 
@@ -156,10 +154,6 @@ true
 ```
 """
 origin_idx(space::AbstractSpace{T}) where T = CartesianIndex(round.(Int, space.n_points ./ 2, RoundNearestTiesUp))
-origin_idx(pops::Pops) = get_space_origin_idx(pops.space)
-
-
-
 
 # Extend Base methods to AbstractSpace types
 import Base: step, zero, length, size, ndims
@@ -170,37 +164,3 @@ zero(::Type{NTuple{N,T}}) where {N,T} = NTuple{N,T}(zero(T) for i in 1:N)
 zero(space::AbstractSpace{T}) where {T} = zeros(T,size(space)...)
 
 ndims(space::AbstractSpace) = length(size(space))
-
-
-
-
-# FIXME Pops shouldn't really be part of Space.
-"""
-    Pops{P}(space)
-
-Wrap a generic AbstractSpace so that it repeats P-many times
-"""
-@with_kw struct Pops{P,T,D,S} <: AbstractSpace{T,D}
-    space::S
-end
-function coordinates(space::Pops)
-    coordinates(space.space)#repeat(calculate(space), outer=(ones(Int,D)...,P))
-end
-Pops{n_pops}(space::S) where {T,D,n_pops,S <: AbstractSpace{T,D}} = Pops{n_pops,T,D,S}(space)
-distance_metric(pops::Pops, edge) = distance_metric(pops.space, edge)
-
-"""
-    one_pop(calc_pops)
-
-Return the coordinates for a single population of a multi-Pops space.
-"""
-function one_pop(pops::Pops{P,T,D,S}) where {P,T,D,S}
-    coordinates(pops)
-end
-
-step(ps::Pops) = step(ps.space)
-length(ps::Pops) = length(ps.space)
-size(ps::Pops{P}) where P = (size(ps.space)...,P)
-
-one_pop_zero(pops::Pops) = zero(pops.space)
-one_pop_size(pops::Pops) = size(pops.space)

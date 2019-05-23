@@ -1,5 +1,5 @@
 abstract type AbstractConnectivity{T,D} <: AbstractParameter{T} end
-abstract type AbstractTensorConnectivity{T,D} <: AbstractConnectivity{T,D}
+abstract type AbstractTensorConnectivity{T,D} <: AbstractConnectivity{T,D} end
 
 macro make_make_tensor_connectivity_mutator(num_dims)
     D = eval(num_dims)
@@ -19,18 +19,18 @@ macro make_make_tensor_connectivity_mutator(num_dims)
     end |> esc
 end
 
-@make_make_connectivity_mutator 1
-@make_make_connectivity_mutator 2
+@make_make_tensor_connectivity_mutator 1
+@make_make_tensor_connectivity_mutator 2
 
-function directed_weights(arr::AbstractArray{<:AbstractTensorConnectivity{T,N}}, space::Pops{P,T,N}) where {T,N,P}
-    ret_tensor = Array{T,(N+N+2)}(undef, one_pop_size(space)..., one_pop_size(space)..., P, P)
+function directed_weights(arr::AbstractArray{<:AbstractTensorConnectivity{T,N}}, space::AbstractSpace{T,N}) where {T,N}
+    ret_tensor = Array{T,(N+N+2)}(undef, size(space)..., size(space)..., P, P)
     for dx in CartesianIndices(arr)
         view_slice_last(ret_tensor, dx) .= directed_weights(arr[dx], space)
     end
     return ret_tensor
 end
 
-abstract type AbstractDecayingConnectivity{T,N} <: AbstractTensorConnectivity{T,N}
+abstract type AbstractDecayingConnectivity{T,N} <: AbstractTensorConnectivity{T,N} end
 @with_kw struct ExpSumAbsDecayingConnectivity{T,N} <: AbstractDecayingConnectivity{T,N}
     amplitude::T
     spread::NTuple{N,T}
@@ -39,6 +39,8 @@ end
     amplitude::T
     spread::NTuple{N,T}
 end
+ExpSumAbsDecayingConnectivity{T,1}(;amplitude=nothing::T, spread=nothing::T) where T = ExpSumAbsDecayingConnectivity{T,1}(;amplitude=amplitude, spread=(spread,))
+ExpSumSqDecayingConnectivity{T,1}(;amplitude=nothing::T, spread=nothing::T) where T,, = ExpSumSqDecayingConnectivity{T,1}(;amplitude=amplitude, spread=(spread,))
 
 
 function directed_weights(::Type{ExpSumAbsDecayingConnectivity{T,N}}, coord_distances::Tup, amplitude::T, spread::Tup, step_size::Tup) where {T,N, Tup<:NTuple{N,T}}

@@ -1,5 +1,5 @@
 
-abstract type AbstractNeuralData{T,N} <: DEDataArray{T,N} end
+abstract type AbstractHomogeneousNeuralData{T,N} <: DEDataArray{T,N} end
+abstract type AbstractHeterogeneousNeuralData{T,N} <: AbstractVectorOfArray{T,N} end
 
-abstract type AbstractNeuralData{T,N} <: AbstractNeuralData{T,N} end
-abstract type AbstractNeuralFieldData{T,N} <: AbstractNeuralData{T,N} end
+@inline unit(data::AbstractHeterogeneousNeuralData, ix) = @view data[ix]

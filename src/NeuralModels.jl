@@ -1,10 +1,12 @@
-module BioNeuralNetworkModels
+module NeuralModels
 
 using Simulation73
 using Parameters
 using DifferentialEquations: DEDataArray
+using RecursiveArrayTools
+using TensorOperations
 
-export AbstractConnectivity, AbstractSpace, AbstractNonlinearity
+export AbstractConnectivity, AbstractSpace, AbstractNonlinearity, AbstractStimulus
 
 # Exporting Connectivities
 export ExpSumSqDecayingConnectivity, ExpSumAbsDecayingConnectivity
@@ -15,13 +17,19 @@ export Lattice, PeriodicLattice,
 
 export coordinates, origin_idx, distances
 
-export Pops, one_pop, one_pop_size, one_pop_zero
-
 # Exporting Nonlinearities
 export SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity
 
+export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
+
+export make_mutator
+
+export NoStimulus
+
 include("helpers.jl")
+include("neural_data.jl")
 include("meshes.jl")
 include("connectivity.jl")
-
+include("nonlinearity.jl")
+include("stimulus.jl")
 end # module
