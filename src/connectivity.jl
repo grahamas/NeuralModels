@@ -10,13 +10,8 @@ macro make_make_tensor_connectivity_mutator(num_dims)
     D_CONN = D + D
     tensor_prod_expr = @eval @macroexpand @tensor dA[$(to_syms...),i] = dA[$(to_syms...),i] + connectivity_tensor[$(to_syms...),$(from_syms...),i,j] * A[$(from_syms...),j]
     quote
-<<<<<<< HEAD
          Dict function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,$D}}, space::AbstractSpace{T,$D}) where {T}
-=======
-        @memoize Dict function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,$D}}, space::AbstractSpace{T,$D}) where {T}
-            @debug "Making connectivity tensor..."
->>>>>>> bdcade11dd244fd922defb9f3e11d9ae4a4da5b3
-            connectivity_tensor::Array{T,$D_CONN_P} = tensor(conn, space)
+            connectivity_tensor::Array{T,$D_CONN_P} = directed_weights(conn, space)
             @debug "done."
             function connectivity!(dA::Array{T,$D_P}, A::Array{T,$D_P}, t::T) where T
                 @debug "Performing tensor product..."
