@@ -11,9 +11,13 @@ macro make_make_tensor_connectivity_mutator(num_dims)
     tensor_prod_expr = @eval @macroexpand @tensor dA[$(to_syms...),i] = dA[$(to_syms...),i] + connectivity_tensor[$(to_syms...),$(from_syms...),i,j] * A[$(from_syms...),j]
     quote
         @memoize Dict function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,$D}}, space::AbstractSpace{T,$D}) where {T}
+            @debug "Making connectivity tensor..."
             connectivity_tensor::Array{T,$D_CONN_P} = tensor(conn, space)
+            @debug "done."
             function connectivity!(dA::Array{T,$D_P}, A::Array{T,$D_P}, t::T) where T
+                @debug "Performing tensor product..."
                 $tensor_prod_expr
+                @debug "done."
             end
         end
     end |> esc
@@ -39,9 +43,6 @@ end
     amplitude::T
     spread::NTuple{N,T}
 end
-ExpSumAbsDecayingConnectivity{T,1}(;amplitude=nothing::T, spread=nothing::T) where T = ExpSumAbsDecayingConnectivity{T,1}(;amplitude=amplitude, spread=(spread,))
-ExpSumSqDecayingConnectivity{T,1}(;amplitude=nothing::T, spread=nothing::T) where T,, = ExpSumSqDecayingConnectivity{T,1}(;amplitude=amplitude, spread=(spread,))
-
 
 function directed_weights(::Type{ExpSumAbsDecayingConnectivity{T,N}}, coord_distances::Tup, amplitude::T, spread::Tup, step_size::Tup) where {T,N, Tup<:NTuple{N,T}}
     amplitude * step_size * exp(

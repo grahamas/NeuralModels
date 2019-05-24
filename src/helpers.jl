@@ -13,7 +13,6 @@ macro fn(expr::Expr)
   name
 end
 
-using MacroTools: splitdef, combinedef, splitarg
 macro memoize(args...)
     if length(args) == 1
         dicttype = :(IdDict)

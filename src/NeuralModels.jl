@@ -5,6 +5,7 @@ using Parameters
 using DifferentialEquations: DEDataArray
 using RecursiveArrayTools
 using TensorOperations
+using MacroTools: splitdef, combinedef, splitarg
 
 export AbstractConnectivity, AbstractSpace, AbstractNonlinearity, AbstractStimulus
 
