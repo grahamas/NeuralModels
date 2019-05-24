@@ -151,9 +151,9 @@ version = "0.4.1"
 
 [[DiffEqBase]]
 deps = ["Compat", "DocStringExtensions", "IterativeSolvers", "IteratorInterfaceExtensions", "LinearAlgebra", "MuladdMacro", "Parameters", "RecipesBase", "RecursiveArrayTools", "RecursiveFactorization", "Requires", "Roots", "SparseArrays", "StaticArrays", "Statistics", "SuiteSparse", "TableTraits", "TreeViews"]
-git-tree-sha1 = "4dcb0ae5060a4493159903ab79080bb44a6c184d"
+git-tree-sha1 = "efc7b2774ca1e962e9b529bb89d2f2f4e72b7516"
 uuid = "2b5f629d-d688-5b77-993f-72d75c75574e"
-version = "5.8.0"
+version = "5.8.1"
 
 [[DiffEqCallbacks]]
 deps = ["DataStructures", "DiffEqBase", "LinearAlgebra", "OrdinaryDiffEq", "RecipesBase", "RecursiveArrayTools", "StaticArrays", "Test"]
@@ -618,7 +618,7 @@ deps = ["Distributed", "Mmap", "Random", "Serialization"]
 uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 
 [[Simulation73]]
-deps = ["BlackBoxOptim", "Dates", "DiffEqParamEstim", "DifferentialEquations", "DrWatson", "IterTools", "JLD2", "MacroTools", "Markdown", "Memoize", "Optim", "Parameters", "StaticArrays"]
+deps = ["Dates", "DifferentialEquations", "DrWatson", "IterTools", "JLD2", "Markdown", "Parameters", "StaticArrays"]
 path = "../Simulation73"
 uuid = "310cc8c8-1ffe-11e9-399c-c5a008d6bdcc"
 version = "0.1.0"
@@ -682,8 +682,14 @@ git-tree-sha1 = "d95567a374f2d1e010bbc3cecf3b784f4ab4b4b7"
 uuid = "789caeaf-c7a9-5a7d-9973-96adeb23e2a0"
 version = "6.2.0"
 
+[[Strided]]
+deps = ["LinearAlgebra", "TupleTools"]
+git-tree-sha1 = "b929f81ca5e78362a4c1e935bb5e7bee27dc2279"
+uuid = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
+version = "0.3.1"
+
 [[SuiteSparse]]
-deps = ["Libdl", "LinearAlgebra", "SparseArrays"]
+deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
 uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [[Sundials]]
@@ -703,6 +709,12 @@ deps = ["IteratorInterfaceExtensions", "LinearAlgebra", "Requires", "TableTraits
 git-tree-sha1 = "c5d784c61e9d243a5a6a8458d19f535b70bdedeb"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 version = "0.2.4"
+
+[[TensorOperations]]
+deps = ["LinearAlgebra", "Random", "Strided", "Test", "TupleTools"]
+git-tree-sha1 = "7cd4a4404c851e8ef8f26bd3c3569bec5130ddec"
+uuid = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
+version = "1.0.4"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
@@ -737,6 +749,12 @@ deps = ["Test"]
 git-tree-sha1 = "8d0d7a3fe2f30d6a7f833a5f19f7c7a5b396eae6"
 uuid = "a2a6695c-b41b-5b7d-aed9-dbfdeacea5d7"
 version = "0.3.0"
+
+[[TupleTools]]
+deps = ["Random", "Test"]
+git-tree-sha1 = "b006524003142128cc6d36189dce337729aa0050"
+uuid = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
+version = "1.1.0"
 
 [[URIParser]]
 deps = ["Test", "Unicode"]

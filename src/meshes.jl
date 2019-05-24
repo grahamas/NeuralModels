@@ -35,7 +35,6 @@ A Lattice of points with `extent` describing the length along each dimension and
     extent::NTuple{N,T}
     n_points::NTuple{N,Int}
 end
-Lattice{T,1}(; extent::T=nothing, n_points::Int=nothing) where {T} = Lattice(; extent=(extent,), n_points=(n_points,))
 distance_metric(lattice::Lattice, edge) = euclidean_metric(lattice)
 
 
