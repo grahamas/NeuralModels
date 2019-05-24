@@ -6,6 +6,7 @@ using DifferentialEquations: DEDataArray
 using RecursiveArrayTools
 using TensorOperations
 using MacroTools: splitdef, combinedef, splitarg
+using StaticArrays
 
 export AbstractConnectivity, AbstractSpace, AbstractNonlinearity, AbstractStimulus
 

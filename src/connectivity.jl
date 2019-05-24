@@ -10,7 +10,7 @@ macro make_make_tensor_connectivity_mutator(num_dims)
     D_CONN = D + D
     tensor_prod_expr = @eval @macroexpand @tensor dA[$(to_syms...),i] = dA[$(to_syms...),i] + connectivity_tensor[$(to_syms...),$(from_syms...),i,j] * A[$(from_syms...),j]
     quote
-         Dict function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,$D}}, space::AbstractSpace{T,$D}) where {T}
+        function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,$D}}, space::AbstractSpace{T,$D}) where {T}
             connectivity_tensor::Array{T,$D_CONN_P} = directed_weights(conn, space)
             @debug "done."
             function connectivity!(dA::Array{T,$D_P}, A::Array{T,$D_P}, t::T) where T
@@ -25,7 +25,16 @@ end
 @make_make_tensor_connectivity_mutator 1
 @make_make_tensor_connectivity_mutator 2
 
-function directed_weights(arr::AbstractArray{<:AbstractTensorConnectivity{T,N}}, space::AbstractSpace{T,N}) where {T,N}
+function view_slice_last(arr::AbstractArray{T,N}, dx::Int) where {T,N}
+    view(arr, ntuple(_ -> Colon(), N - 1)..., dx)
+end
+
+function view_slice_last(arr::AbstractArray{T,N}, dx::CartesianIndex{DX}) where {T,N,DX}
+    view(arr, ntuple(_ -> Colon(), N - DX)..., dx)
+end
+
+
+function directed_weights(arr::SMatrix{P,P,<:AbstractTensorConnectivity{T,N}}, space::AbstractSpace{T,N}) where {T,N,P}
     ret_tensor = Array{T,(N+N+2)}(undef, size(space)..., size(space)..., P, P)
     for dx in CartesianIndices(arr)
         view_slice_last(ret_tensor, dx) .= directed_weights(arr[dx], space)
@@ -44,8 +53,8 @@ end
 end
 
 function directed_weights(::Type{ExpSumAbsDecayingConnectivity{T,N}}, coord_distances::Tup, amplitude::T, spread::Tup, step_size::Tup) where {T,N, Tup<:NTuple{N,T}}
-    amplitude * step_size * exp(
-        -sum(abs.(distance ./ spread))
+    amplitude * prod(step_size) * exp(
+        -sum(abs.(coord_distances ./ spread))
     ) / (2 * prod(spread))
 end
 
@@ -57,7 +66,7 @@ function directed_weights(::Type{ExpSumSqDecayingConnectivity{T,N}}, coord_dista
 end
 
  function directed_weights(connectivity::CONN, locations::AbstractSpace{T,N}) where {T,N,CONN<:AbstractDecayingConnectivity{T,N}}
-    distances = get_distances(locations)
+    dists = distances(locations)
     step_size = step(locations)
-    return directed_weights.(Ref(CONN), distances, connectivity.amplitude, Ref(connectivity.spread), Ref(step_size))
+    return directed_weights.(Ref(CONN), dists, connectivity.amplitude, Ref(connectivity.spread), Ref(step_size))
 end
