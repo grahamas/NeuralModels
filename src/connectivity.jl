@@ -10,7 +10,7 @@ macro make_make_tensor_connectivity_mutator(num_dims)
     D_CONN = D + D
     tensor_prod_expr = @eval @macroexpand @tensor dA[$(to_syms...),i] = dA[$(to_syms...),i] + connectivity_tensor[$(to_syms...),$(from_syms...),i,j] * A[$(from_syms...),j]
     quote
-        @memoize Dict function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,$D}}, space::AbstractSpace{T,$D}) where {T}
+         Dict function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,$D}}, space::AbstractSpace{T,$D}) where {T}
             connectivity_tensor::Array{T,$D_CONN_P} = tensor(conn, space)
             function connectivity!(dA::Array{T,$D_P}, A::Array{T,$D_P}, t::T) where T
                 $tensor_prod_expr
@@ -56,7 +56,7 @@ function directed_weights(::Type{ExpSumSqDecayingConnectivity{T,N}}, coord_dista
     ) / (2 * prod(spread))
 end
 
-@memoize function directed_weights(connectivity::CONN, locations::AbstractSpace{T,N}) where {T,N,CONN<:AbstractDecayingConnectivity{T,N}}
+ function directed_weights(connectivity::CONN, locations::AbstractSpace{T,N}) where {T,N,CONN<:AbstractDecayingConnectivity{T,N}}
     distances = get_distances(locations)
     step_size = step(locations)
     return directed_weights.(Ref(CONN), distances, connectivity.amplitude, Ref(connectivity.spread), Ref(step_size))

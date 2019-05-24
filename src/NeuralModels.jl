@@ -26,7 +26,6 @@ export make_mutator
 
 export NoStimulus
 
-include("helpers.jl")
 include("neural_data.jl")
 include("meshes.jl")
 include("connectivity.jl")

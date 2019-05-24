@@ -102,7 +102,7 @@ julia> seg[end] - seg[1] ≈ 5.0
 true
 ```
 """
-@memoize function discrete_segment(extent::T, n_points::Int) where {T <: Number}
+ function discrete_segment(extent::T, n_points::Int) where {T <: Number}
     n_points % 2 == 1 || @warn "n_points = $n_points is not odd, so the segment will not have the origin."
     LinRange{T}(-(extent/2),(extent/2), n_points)
 end
@@ -111,7 +111,7 @@ end
 
 Return an object containing `n_points` equidistant coordinates along each dimension of a grid of length `extent` along each dimension, centered at (0,0,...,0).
 """
-@memoize discrete_lattice(extent::NTuple{N,T}, n_points::NTuple{N,Int}) where {N,T} = Iterators.product(
+ discrete_lattice(extent::NTuple{N,T}, n_points::NTuple{N,Int}) where {N,T} = Iterators.product(
     discrete_segment.(extent, n_points)...
 )
 coordinates(lattice::AbstractLattice) = discrete_lattice(lattice.extent, lattice.n_points)
@@ -122,7 +122,7 @@ coordinates(lattice::AbstractLattice) = discrete_lattice(lattice.extent, lattice
 
 Return the distances between every pair of points in `calc_space`
 """
-@memoize Dict function distances(space::AbstractSpace{T}) where T
+ Dict function distances(space::AbstractSpace{T}) where T
     edges = Iterators.product(coordinates(space), coordinates(space))
     distances = distance_metric.(Ref(space), edges)
 end
