@@ -3,8 +3,8 @@ abstract type AbstractNonlinearity{T} <: AbstractParameter{T} end
 function make_mutator(nonlinearity_arr::AbstractArray{<:AbstractNonlinearity{T}}) where T
     nonlinearity_mutators = [make_nonlinearity(nonl) for nonl in nonlinearity_arr]
     function nonlinearity_mutator!(dA::PopsData, A::PopsData, t::T) where {T,D,PopsData<:AbstractHeterogeneousNeuralData{T,D}}
-        for (i, nonlinearity!) in enumerate(nonlinearity_mutators)
-            nonlinearity!(view_slice_last(dA, i))
+        @views for (i, nonlinearity!) in enumerate(nonlinearity_mutators)
+            nonlinearity!(population(dA, i))
         end
     end
 end
