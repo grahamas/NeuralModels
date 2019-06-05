@@ -1,15 +1,3 @@
-
-"`AbstractSpace{T,D}` with distance-type `T` and dimension `D`"
-abstract type AbstractSpace{T,D} <: AbstractParameter{T} end
-abstract type AbstractLattice{T,D} <: AbstractSpace{T,D} end
-
-"""
-    coordinates(space::AbstractSpace)
-
-Return an object in the shape of the space where each element is the coordinate of that element.
-"""
-coordinates(space::AbstractSpace) = error("undefined.")
-
 @doc """
     euclidean_metric(edge)
 
@@ -113,7 +101,7 @@ Return an object containing `n_points` equidistant coordinates along each dimens
 discrete_lattice(extent::NTuple{N,T}, n_points::NTuple{N,Int}) where {N,T} = Iterators.product(
     discrete_segment.(extent, n_points)...
 )
-coordinates(lattice::AbstractLattice) = discrete_lattice(lattice.extent, lattice.n_points)
+Simulation73.coordinates(lattice::AbstractLattice) = discrete_lattice(lattice.extent, lattice.n_points)
 
 
 """

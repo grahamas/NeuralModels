@@ -8,7 +8,7 @@ using TensorOperations
 using MacroTools: splitdef, combinedef, splitarg
 using StaticArrays
 
-export AbstractConnectivity, AbstractSpace, AbstractNonlinearity, AbstractStimulus
+export AbstractConnectivity, AbstractNonlinearity, AbstractStimulus
 
 # Exporting Connectivities
 export ExpSumSqDecayingConnectivity, ExpSumAbsDecayingConnectivity
@@ -17,17 +17,18 @@ export ExpSumSqDecayingConnectivity, ExpSumAbsDecayingConnectivity
 export Lattice, PeriodicLattice,
     Segment, Circle, Torus
 
-export coordinates, origin_idx, distances
+export origin_idx, distances
 
 # Exporting Nonlinearities
 export SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity
 
-export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
+export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData, population
 
 export make_mutator
 
 export NoStimulus
 
+include("helpers.jl")
 include("neural_data.jl")
 include("meshes.jl")
 include("connectivity.jl")

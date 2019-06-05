@@ -13,7 +13,7 @@ macro make_make_tensor_connectivity_mutator(num_dims)
         function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,$D}}, space::AbstractSpace{T,$D}) where {T}
             connectivity_tensor::Array{T,$D_CONN_P} = directed_weights(conn, space)
             @debug "done."
-            function connectivity!(dA::PopsData, A::PopsData, t::T) where {T, PopsData<:AbstractHeterogeneousNeuralData{T,$D}}
+            function connectivity!(dA::PopsData, A::PopsData, t::T) where {T, PopsData<:AbstractHeterogeneousNeuralData{T,$D_P}}
                 @debug "Performing tensor product..."
                 $tensor_prod_expr
                 @debug "done."
@@ -24,15 +24,6 @@ end
 
 @make_make_tensor_connectivity_mutator 1
 @make_make_tensor_connectivity_mutator 2
-
-function view_slice_last(arr::AbstractArray{T,N}, dx::Int) where {T,N}
-    view(arr, ntuple(_ -> Colon(), N - 1)..., dx)
-end
-
-function view_slice_last(arr::AbstractArray{T,N}, dx::CartesianIndex{DX}) where {T,N,DX}
-    view(arr, ntuple(_ -> Colon(), N - DX)..., dx)
-end
-
 
 function directed_weights(arr::SMatrix{P,P,<:AbstractTensorConnectivity{T,N}}, space::AbstractSpace{T,N}) where {T,N,P}
     ret_tensor = Array{T,(N+N+2)}(undef, size(space)..., size(space)..., P, P)
@@ -65,7 +56,7 @@ function directed_weights(::Type{ExpSumSqDecayingConnectivity{T,N}}, coord_dista
     ) / (2 * prod(spread))
 end
 
- function directed_weights(connectivity::CONN, locations::AbstractSpace{T,N}) where {T,N,CONN<:AbstractDecayingConnectivity{T,N}}
+ function directed_weights(connectivity::CONN, locations::AbstractSpace{T,N})::AbstractArray{T} where {T,N,CONN<:AbstractDecayingConnectivity{T,N}}
     dists = distances(locations)
     step_size = step(locations)
     return directed_weights.(Ref(CONN), dists, connectivity.amplitude, Ref(connectivity.spread), Ref(step_size))
