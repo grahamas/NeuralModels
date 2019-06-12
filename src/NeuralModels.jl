@@ -26,7 +26,7 @@ export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData, populatio
 
 export make_mutator
 
-export NoStimulus
+export NoStimulus, MultipleDifferentStimuli, MultipleSameStimuli
 
 include("helpers.jl")
 include("neural_data.jl")

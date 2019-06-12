@@ -15,24 +15,36 @@ function make_stimulus(nostim::NoStimulus{T,N}, space::AbstractSpace{T,N}) where
     (val,t) -> return
 end
 
-struct MultipleDifferentStimuli{T,N} <: AbstractStimulus{T,N}
+abstract type MultipleStimuli{T,N} <: AbstractStimulus{T,N} end
+struct MultipleDifferentStimuli{T,N} <: MultipleStimuli{T,N}
     stimuli::AbstractArray{AbstractStimulus{T,N}}
 end
 # Allow for pop arrays
 function MultipleDifferentStimuli{T,N}(arr::AbstractArray{<:AbstractArray}) where {T,N}
     [MultipleDifferentStimuli{T,N}(collect(stims)) for stims in zip(arr...)]
 end
-function make_stimulus(stims::MultipleDifferentStimuli, space::AbstractSpace)
-    stimulus_mutators! = make_stimulus.(stims, Ref(space))
+function make_stimulus(stims::MultipleStimuli, space::AbstractSpace)
+    stimulus_mutators! = make_stimulus.(stims.stimuli, Ref(space)) |> collect
     (val, t) -> (stimulus_mutators! .|> (fn!) -> fn!(val,t))
 end
 
-struct MultipleSameStimuli{T,N,S} <: AbstractStimulus{T,N}
-    stimuli::Array{S,1}
+struct MultipleSameStimuli{T,N,S,NS} <: MultipleStimuli{T,N}
+    stimuli::NTuple{NS,S}
 end
-function MultipleSameStimuli{S,NS}(; kwargs...) where {T,N,S <: AbstractStimulus{T,N}}
-    arg_names, arg_value_arrays = keys(kwargs), values(kwargs)
-    list_of_arg_values = zip(arg_value_arrays...)
-    MultipleStimuli{T,N,S}([S(; Dict(name => value for (name, value) in zip(arg_names, arg_values))...)
-        for arg_values in list_of_arg_values])
+function expand_to_tuple(val, ::Type{Val{NS}}) where NS
+    NTuple{NS}(val for _ in 1:NS)
+end
+function expand_to_tuple(tup::NTuple{NS}, ::Type{Val{NS}}) where NS 
+    tup
+end
+function MultipleSameStimuli{T,N,S,NS}(; kwargs...) where {T,N,NS,S <: AbstractStimulus{T,N}}
+    arg_names, arg_values = keys(kwargs), values(kwargs)
+    arg_expanded_values = expand_to_tuple.(collect(arg_values), Val{NS})
+    list_of_arg_values = zip(arg_expanded_values...)
+    MultipleSameStimuli{T,N,S,NS}(
+                  NTuple{NS,S}(
+                      S(; Dict{Symbol,Any}(name => value for (name, value) in zip(arg_names, arg_values))...)
+                  for arg_values in list_of_arg_values
+                  )
+             )
 end
