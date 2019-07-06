@@ -20,8 +20,9 @@ struct MultipleDifferentStimuli{T,N} <: MultipleStimuli{T,N}
     stimuli::AbstractArray{AbstractStimulus{T,N}}
 end
 # Allow for pop arrays
-function MultipleDifferentStimuli{T,N}(arr::AbstractArray{<:AbstractArray}) where {T,N}
-    [MultipleDifferentStimuli{T,N}(collect(stims)) for stims in zip(arr...)]
+import Simulation73: pops
+function pops(type::Type{MultipleDifferentStimuli{T,N}}, args...) where {T, N}
+    [MultipleDifferentStimuli{T,N}(collect(stims)) for stims in zip(args...)]
 end
 function make_stimulus(stims::MultipleStimuli, space::AbstractSpace)
     stimulus_mutators! = make_stimulus.(stims.stimuli, Ref(space)) |> collect
