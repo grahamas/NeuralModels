@@ -13,11 +13,7 @@ export AbstractConnectivity, AbstractNonlinearity, AbstractStimulus
 # Exporting Connectivities
 export ExpSumSqDecayingConnectivity, ExpSumAbsDecayingConnectivity
 
-# Exporting Meshes
-export Lattice, PeriodicLattice,
-    Segment, Circle, Torus
 
-export origin_idx, distances
 
 # Exporting Nonlinearities
 export SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity
@@ -30,7 +26,6 @@ export NoStimulus, MultipleDifferentStimuli, MultipleSameStimuli
 
 include("helpers.jl")
 include("neural_data.jl")
-include("meshes.jl")
 include("connectivity.jl")
 include("nonlinearity.jl")
 include("stimulus.jl")
