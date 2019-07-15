@@ -11,7 +11,7 @@ function make_mutator(stimulus_arr::AbstractArray{<:AbstractStimulus{T}}, space:
 end
 
 struct NoStimulus{T,N} <: AbstractStimulus{T,N} end
-function make_stimulus(nostim::NoStimulus{T,N}, space::AbstractSpace{T,N}) where {T,N,AT<: AbstractArray{T,N}}
+function make_stimulus(nostim::NoStimulus, space::AbstractSpace)
     (val,t) -> return
 end
 
@@ -35,7 +35,7 @@ end
 function expand_to_tuple(val, ::Type{Val{NS}}) where NS
     NTuple{NS}(val for _ in 1:NS)
 end
-function expand_to_tuple(tup::NTuple{NS}, ::Type{Val{NS}}) where NS 
+function expand_to_tuple(tup::NTuple{NS}, ::Type{Val{NS}}) where NS
     tup
 end
 function MultipleSameStimuli{T,N,S,NS}(; kwargs...) where {T,N,NS,S <: AbstractStimulus{T,N}}
