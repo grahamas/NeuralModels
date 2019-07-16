@@ -11,9 +11,7 @@ using StaticArrays
 export AbstractConnectivity, AbstractNonlinearity, AbstractStimulus
 
 # Exporting Connectivities
-export ExpSumSqDecayingConnectivity, ExpSumAbsDecayingConnectivity
-
-
+export ExpSumSqDecayingConnectivity, ExpSumAbsDecayingConnectivity, directed_weights
 
 # Exporting Nonlinearities
 export SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity
