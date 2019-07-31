@@ -1,12 +1,12 @@
 abstract type AbstractConnectivity{T,N_CDT} <: AbstractParameter{T} end
 abstract type AbstractTensorConnectivity{T,N_CDT} <: AbstractConnectivity{T,N_CDT} end
 
-abstract type AbstractDecayingConnectivity{T,N_CDT} <: AbstractTensorConnectivity{T,N_CDT} end
-@with_kw struct ExpSumAbsDecayingConnectivity{T,N_CDT} <: AbstractDecayingConnectivity{T,N_CDT}
+abstract type AbstractExpDecayingConnectivity{T,N_CDT} <: AbstractTensorConnectivity{T,N_CDT} end
+@with_kw struct ExpSumAbsDecayingConnectivity{T,N_CDT} <: AbstractExpDecayingConnectivity{T,N_CDT}
     amplitude::T
     spread::NTuple{N_CDT,T}
 end
-@with_kw struct ExpSumSqDecayingConnectivity{T,N_CDT} <: AbstractDecayingConnectivity{T,N_CDT}
+@with_kw struct ExpSumSqDecayingConnectivity{T,N_CDT} <: AbstractExpDecayingConnectivity{T,N_CDT}
     amplitude::T
     spread::NTuple{N_CDT,T}
 end
@@ -38,14 +38,14 @@ end
 
 # Version for directed weights from source
 function directed_weights(connectivity::CONN, locations::AbstractLattice{T,N_ARR,N_CDT},
-                          source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT,CONN<:AbstractDecayingConnectivity{T,N_CDT}}
+                          source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT,CONN<:AbstractExpDecayingConnectivity{T,N_CDT}}
     diffs = differences(locations, source_location)
     step_size = step(locations)
     return directed_weights.(Ref(CONN), diffs, connectivity.amplitude, Ref(connectivity.spread), Ref(step_size))
 end
 
 function directed_weights(connectivity::CONN,
-                          locations::AbstractLattice{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT,CONN<:AbstractDecayingConnectivity{T,N_CDT}}
+                          locations::AbstractLattice{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT,CONN<:AbstractExpDecayingConnectivity{T,N_CDT}}
     diffs = differences(locations)
     step_size = step(locations)
     return directed_weights.(Ref(CONN), diffs, connectivity.amplitude, Ref(connectivity.spread), Ref(step_size))
@@ -64,7 +64,6 @@ function directed_weights(::Type{ExpSumAbsDecayingConnectivity{T,N_CDT}}, coord_
         -sum(abs.(coord_differences ./ spread))
     ) / (2 * prod(spread))
 end
-
 
 function directed_weights(::Type{ExpSumSqDecayingConnectivity{T,N_CDT}}, coord_differences::Tup, amplitude::T, spread::Tup, step_size::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
     amplitude * prod(step_size) * exp(
