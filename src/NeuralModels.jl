@@ -12,6 +12,7 @@ export AbstractConnectivity, AbstractNonlinearity, AbstractStimulus
 
 # Exporting Connectivities
 export ExpSumSqDecayingConnectivity, ExpSumAbsDecayingConnectivity, directed_weights
+export AbstractExpDecayingConnectivity
 
 # Exporting Nonlinearities
 export SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity
