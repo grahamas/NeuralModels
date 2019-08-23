@@ -7,12 +7,13 @@ using RecursiveArrayTools
 using TensorOperations
 using MacroTools: splitdef, combinedef, splitarg
 using StaticArrays
+using FFTW
 
 export AbstractConnectivity, AbstractNonlinearity, AbstractStimulus
 
 # Exporting Connectivities
 export ExpSumSqDecayingConnectivity, ExpSumAbsDecayingConnectivity, directed_weights
-export AbstractExpDecayingConnectivity
+export AbstractExpDecayingConnectivity, FFT
 
 # Exporting Nonlinearities
 export SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity

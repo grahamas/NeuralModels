@@ -1,6 +1,37 @@
 abstract type AbstractConnectivity{T,N_CDT} <: AbstractParameter{T} end
 abstract type AbstractTensorConnectivity{T,N_CDT} <: AbstractConnectivity{T,N_CDT} end
 
+# struct FFT{T,N_CDT,C<:AbstractConnectivity{T,N_CDT}} <: AbstractConnectivity{T,N_CDT}
+#     connectivity::C
+#     kernel_size::NTuple{N_CDT,Int}
+#     FFT{T,N_CDT,C}(conn::C,ksize::NT) where {T,N_CDT,C<:AbstractConnectivity{T,N_CDT},NT<:NTuple{N_CDT,Int}} = new(conn, ksize)
+# end
+struct FFT{T,N_CDT,C<:AbstractConnectivity{T,N_CDT}} <: AbstractConnectivity{T,N_CDT}
+    connectivity::C
+    FFT{T,N_CDT,C}(conn::C) where {T,N_CDT,C<:AbstractConnectivity{T,N_CDT}} = new(conn)
+end
+FFT(c::C) where {T,N_CDT,C<:AbstractConnectivity{T,N_CDT}} = FFT{T,N_CDT,C}(c)
+
+function make_mutator(conns::AbstractArray{<:FFT{T}}, space::AbstractPeriodicLattice{T}) where T
+    # @assert all(map(conns) do conn
+    #     all(conn.kernel_size .< space.extent/2) && all(conn.kernel_size .% 2 .== 1)
+    # end) # Assert the kernel is smaller in all dimensions than half the space AND odd
+    # @assert all(conn.kern)
+    kernels = [kernel(conn.connectivity, space) for conn in conns]
+    kernels_fftd = rfft.(kernels)
+    P = size(conns, 1)
+    sample_value = zeros(T,P,size(space)...)
+    first_dim_space = size(space, 1)
+    # fftplan = plan_rfft(sample_value)
+    # sample_fftd = fftplan * sample_value
+    # ifftplan = plan_irfft(sample_fftd, size(sample_value,1))
+    function connectivity!(dA::PopsData, A::PopsData, t::T) where {T, PopsData<:AbstractHeterogeneousNeuralData{T}}
+        for ix in CartesianIndices(kernels_fftd)
+            population(dA, ix[1]) .+= irfft(rfft(population(A, ix[2])) .* kernels_fftd[ix], first_dim_space)
+        end
+    end
+end
+
 abstract type AbstractExpDecayingConnectivity{T,N_CDT} <: AbstractTensorConnectivity{T,N_CDT} end
 @with_kw struct ExpSumAbsDecayingConnectivity{T,N_CDT} <: AbstractExpDecayingConnectivity{T,N_CDT}
     amplitude::T
@@ -69,4 +100,8 @@ function directed_weights(::Type{ExpSumSqDecayingConnectivity{T,N_CDT}}, coord_d
     amplitude * prod(step_size) * exp(
         -sum( (coord_differences ./ spread) .^ 2)
     ) / (2 * prod(spread))
+end
+
+function kernel(conn::AbstractConnectivity{T,N_CDT}, lattice::AbstractSpace{T,N_CDT}) where {T,N_CDT}
+    directed_weights(conn, lattice, coordinates(lattice)[origin_idx(lattice)])
 end
