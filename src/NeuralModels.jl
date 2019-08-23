@@ -8,6 +8,7 @@ using TensorOperations
 using MacroTools: splitdef, combinedef, splitarg
 using StaticArrays
 using FFTW
+using LinearAlgebra
 
 export AbstractConnectivity, AbstractNonlinearity, AbstractStimulus
 

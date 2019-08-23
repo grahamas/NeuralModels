@@ -12,22 +12,28 @@ struct FFT{T,N_CDT,C<:AbstractConnectivity{T,N_CDT}} <: AbstractConnectivity{T,N
 end
 FFT(c::C) where {T,N_CDT,C<:AbstractConnectivity{T,N_CDT}} = FFT{T,N_CDT,C}(c)
 
-function make_mutator(conns::AbstractArray{<:FFT{T}}, space::AbstractPeriodicLattice{T}) where T
+function make_mutator(conns::AbstractArray{<:FFT{T}}, space::AbstractPeriodicLattice{T,2}) where T
     # @assert all(map(conns) do conn
     #     all(conn.kernel_size .< space.extent/2) && all(conn.kernel_size .% 2 .== 1)
     # end) # Assert the kernel is smaller in all dimensions than half the space AND odd
     # @assert all(conn.kern)
     kernels = [kernel(conn.connectivity, space) for conn in conns]
     kernels_fftd = rfft.(kernels)
-    P = size(conns, 1)
-    sample_value = zeros(T,P,size(space)...)
+
+    prealloc = zeros(T,size(space)...)
     first_dim_space = size(space, 1)
-    # fftplan = plan_rfft(sample_value)
-    # sample_fftd = fftplan * sample_value
-    # ifftplan = plan_irfft(sample_fftd, size(sample_value,1))
+    fft_op = plan_rfft(prealloc)
+    fftd_prealloc = fft_op * prealloc
+    ifft_op = plan_irfft(fftd_prealloc, size(prealloc,1))
     function connectivity!(dA::PopsData, A::PopsData, t::T) where {T, PopsData<:AbstractHeterogeneousNeuralData{T}}
+        #A_fftd = [rfft(population(A,i)) for i in 1:size(A,1)]
+        #A_fftd = [fft_op * collect(population(A,i)) for i in 1:size(A,1)]
         for ix in CartesianIndices(kernels_fftd)
-            population(dA, ix[1]) .+= irfft(rfft(population(A, ix[2])) .* kernels_fftd[ix], first_dim_space)
+            # mul!(fftd_prealloc, fft_op, population(A, ix[2]))
+            # fftd_prealloc .*= kernels_fftd[ix]
+            # mul!(prealloc, ifft_op, fftd_prealloc)
+            # population(dA, ix[1]) .+= prealloc
+            population(dA, ix[1]) .+= ifft_op * (fft_op * collect(population(A, ix[2])) .* kernels_fftd[ix])
         end
     end
 end
@@ -54,11 +60,8 @@ macro make_make_tensor_connectivity_mutator(num_dims)
     quote
         function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,N_CDT}}, lattice::AbstractLattice{T,$D,N_CDT}) where {T,N_CDT}
             connectivity_tensor::Array{T,$D_CONN_P} = directed_weights(conn, lattice)
-            @debug "done."
             function connectivity!(dA::PopsData, A::PopsData, t::T) where {T, PopsData<:AbstractHeterogeneousNeuralData{T,$D_P}}
-                @debug "Performing tensor product..."
                 $tensor_prod_expr
-                @debug "done."
             end
         end
     end |> esc
