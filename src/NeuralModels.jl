@@ -19,7 +19,7 @@ export AbstractExpDecayingConnectivity, FFT
 # Exporting Nonlinearities
 export SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity
 
-export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData, population
+export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
 
 export make_mutator
 

@@ -20,20 +20,24 @@ function make_mutator(conns::AbstractArray{<:FFT{T}}, space::AbstractPeriodicLat
     kernels = [kernel(conn.connectivity, space) for conn in conns]
     kernels_fftd = rfft.(kernels)
 
-    prealloc = zeros(T,size(space)...)
+    P = size(conns,1)
+    populations = population_repeat(zeros(T,size(space)...), P)
+    preallocs = [population(populations, pop) for pop in 1:P]
     first_dim_space = size(space, 1)
-    fft_op = plan_rfft(prealloc)
-    fftd_prealloc = fft_op * prealloc
-    ifft_op = plan_irfft(fftd_prealloc, size(prealloc,1))
+    fft_ops = plan_rfft.(preallocs)
+    @show [op.ialign for op in fft_ops]
+    fftd_preallocs = [op * prealloc for (op, prealloc) in zip(fft_ops, preallocs)]
+    ifft_ops = plan_irfft.(fftd_preallocs, first_dim_space) # TODO: try ifft_op = inv(fft_op)
     function connectivity!(dA::PopsData, A::PopsData, t::T) where {T, PopsData<:AbstractHeterogeneousNeuralData{T}}
         #A_fftd = [rfft(population(A,i)) for i in 1:size(A,1)]
         #A_fftd = [fft_op * collect(population(A,i)) for i in 1:size(A,1)]
         for ix in CartesianIndices(kernels_fftd)
-            # mul!(fftd_prealloc, fft_op, population(A, ix[2]))
-            # fftd_prealloc .*= kernels_fftd[ix]
-            # mul!(prealloc, ifft_op, fftd_prealloc)
-            # population(dA, ix[1]) .+= prealloc
-            population(dA, ix[1]) .+= ifft_op * (fft_op * collect(population(A, ix[2])) .* kernels_fftd[ix])
+            # # mul!(fftd_prealloc, fft_op, population(A, ix[2]))
+            # # fftd_prealloc .*= kernels_fftd[ix]
+            # # mul!(prealloc, ifft_op, fftd_prealloc)
+            # # population(dA, ix[1]) .+= prealloc
+            # population(dA, ix[1]) .+= ifft_op * (fft_op * collect(population(A, ix[2])) .* kernels_fftd[ix])
+            population(dA, ix[1]) .+= ifft_ops[ix[2]] * ((fft_ops[ix[2]] * population(A, ix[2])) .* kernels_fftd[ix])
         end
     end
 end
