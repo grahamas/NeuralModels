@@ -14,7 +14,7 @@ FFT(c::C) where {T,N_CDT,C<:AbstractConnectivity{T,N_CDT}} = FFT{T,N_CDT,C}(c)
 
 function make_mutator(conns::AbstractArray{<:FFT{T}}, space::AbstractPeriodicLattice{T,2}) where T
     # @assert all(map(conns) do conn
-    #     all(conn.kernel_size .< space.extent/2) && all(conn.kernel_size .% 2 .== 1)
+    #     all(conn.kernel_size .< extent(space)/2) && all(conn.kernel_size .% 2 .== 1)
     # end) # Assert the kernel is smaller in all dimensions than half the space AND odd
     # @assert all(conn.kern)
     kernels = [kernel(conn.connectivity, space) for conn in conns]
@@ -25,7 +25,6 @@ function make_mutator(conns::AbstractArray{<:FFT{T}}, space::AbstractPeriodicLat
     preallocs = [population(populations, pop) for pop in 1:P]
     first_dim_space = size(space, 1)
     fft_ops = plan_rfft.(preallocs)
-    @show [op.ialign for op in fft_ops]
     fftd_preallocs = [op * prealloc for (op, prealloc) in zip(fft_ops, preallocs)]
     ifft_ops = plan_irfft.(fftd_preallocs, first_dim_space) # TODO: try ifft_op = inv(fft_op)
     function connectivity!(dA::PopsData, A::PopsData, t::T) where {T, PopsData<:AbstractHeterogeneousNeuralData{T}}
@@ -60,7 +59,7 @@ macro make_make_tensor_connectivity_mutator(num_dims)
     D_CONN_P = D + D + 2
     D_CONN = D + D
     # FIXME using neural_data led to leading pop dimension in dA,A but not in connectivity_tensor
-    tensor_prod_expr = @eval @macroexpand @tensor dA[i,$(to_syms...)] = dA[i,$(to_syms...)] + connectivity_tensor[$(to_syms...),$(from_syms...),i,j] * A[j,$(from_syms...)]
+    tensor_prod_expr = @eval @macroexpand @tensor dA[$(to_syms...),i] = dA[$(to_syms...),i] + connectivity_tensor[$(to_syms...),$(from_syms...),i,j] * A[$(from_syms...),j]
     quote
         function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,N_CDT}}, lattice::AbstractLattice{T,$D,N_CDT}) where {T,N_CDT}
             connectivity_tensor::Array{T,$D_CONN_P} = directed_weights(conn, lattice)
