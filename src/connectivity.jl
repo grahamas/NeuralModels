@@ -62,7 +62,7 @@ macro make_make_tensor_connectivity_mutator(num_dims)
     tensor_prod_expr = @eval @macroexpand @tensor dA[$(to_syms...),i] = dA[$(to_syms...),i] + connectivity_tensor[$(to_syms...),$(from_syms...),i,j] * A[$(from_syms...),j]
     quote
         function make_mutator(conn::AbstractArray{<:AbstractTensorConnectivity{T,N_CDT}}, lattice::AbstractLattice{T,$D,N_CDT}) where {T,N_CDT}
-            connectivity_tensor::Array{T,$D_CONN_P} = directed_weights(conn, lattice)
+            connectivity_tensor::Array{T,$D_CONN_P} = directed_weights(conn, lattice) .* prod(step(lattice)) # multiply by dX volume element for numerical integration below
             function connectivity!(dA::PopsData, A::PopsData, t::T) where {T, PopsData<:AbstractHeterogeneousNeuralData{T,$D_P}}
                 $tensor_prod_expr
             end
@@ -97,13 +97,13 @@ function directed_weights(arr::SMatrix{P,P,<:AbstractTensorConnectivity{T,N_CDT}
 end
 
 function directed_weights(::Type{ExpSumAbsDecayingConnectivity{T,N_CDT}}, coord_differences::Tup, amplitude::T, spread::Tup, step_size::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
-    amplitude * prod(step_size) * exp(
+    amplitude * exp(
         -sum(abs.(coord_differences ./ spread))
     ) / (2 * prod(spread))
 end
 
 function directed_weights(::Type{ExpSumSqDecayingConnectivity{T,N_CDT}}, coord_differences::Tup, amplitude::T, spread::Tup, step_size::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
-    amplitude * prod(step_size) * exp(
+    amplitude * exp(
         -sum( (coord_differences ./ spread) .^ 2)
     ) / (2 * prod(spread))
 end
