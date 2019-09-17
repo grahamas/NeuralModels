@@ -109,5 +109,5 @@ function directed_weights(::Type{ExpSumSqDecayingConnectivity{T,N_CDT}}, coord_d
 end
 
 function kernel(conn::AbstractConnectivity{T,N_CDT}, lattice::AbstractSpace{T,N_CDT}) where {T,N_CDT}
-    directed_weights(conn, lattice, coordinates(lattice)[origin_idx(lattice)])
+    directed_weights(conn, lattice, coordinates(lattice)[origin_idx(lattice)]) .* prod(step(lattice))
 end
