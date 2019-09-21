@@ -73,19 +73,26 @@ end
 @make_make_tensor_connectivity_mutator 1
 @make_make_tensor_connectivity_mutator 2
 
+function unit_scale(arr::AbstractArray)
+    @show sum(arr)
+    arr ./ sum(arr)
+end
+
 # Version for directed weights from source
 function directed_weights(connectivity::CONN, locations::AbstractLattice{T,N_ARR,N_CDT},
                           source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT,CONN<:AbstractExpDecayingConnectivity{T,N_CDT}}
     diffs = differences(locations, source_location)
     step_size = step(locations)
-    return directed_weights.(Ref(CONN), diffs, connectivity.amplitude, Ref(connectivity.spread), Ref(step_size))
+    unscaled = directed_weight_unscaled.(Ref(CONN), diffs, Ref(connectivity.spread), Ref(step_size))
+    return connectivity.amplitude .* (unscaled ./ sum(unscaled))
 end
 
 function directed_weights(connectivity::CONN,
                           locations::AbstractLattice{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT,CONN<:AbstractExpDecayingConnectivity{T,N_CDT}}
     diffs = differences(locations)
     step_size = step(locations)
-    return directed_weights.(Ref(CONN), diffs, connectivity.amplitude, Ref(connectivity.spread), Ref(step_size))
+    center_norm_val = sum(directed_weight_unscaled.(Ref(CONN), differences(locations, coordinates(locations)[origin_idx(locations)]), Ref(connectivity.spread), Ref(step_size)))
+    return connectivity.amplitude .* (directed_weight_unscaled.(Ref(CONN), diffs, Ref(connectivity.spread), Ref(step_size)) ./ center_norm_val)
 end
 
 function directed_weights(arr::SMatrix{P,P,<:AbstractTensorConnectivity{T,N_CDT}}, lattice::AbstractLattice{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT,P}
@@ -96,18 +103,18 @@ function directed_weights(arr::SMatrix{P,P,<:AbstractTensorConnectivity{T,N_CDT}
     return ret_tensor
 end
 
-function directed_weights(::Type{ExpSumAbsDecayingConnectivity{T,N_CDT}}, coord_differences::Tup, amplitude::T, spread::Tup, step_size::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
+function directed_weight_unscaled(::Type{ExpSumAbsDecayingConnectivity{T,N_CDT}}, coord_differences::Tup, spread::Tup, step_size::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
     amplitude * exp(
         -sum(abs.(coord_differences ./ spread))
-    ) / (2 * prod(spread))
+    )
 end
 
-function directed_weights(::Type{ExpSumSqDecayingConnectivity{T,N_CDT}}, coord_differences::Tup, amplitude::T, spread::Tup, step_size::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
-    amplitude * exp(
+function directed_weight_unscaled(::Type{ExpSumSqDecayingConnectivity{T,N_CDT}}, coord_differences::Tup, spread::Tup, step_size::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
+    exp(
         -sum( (coord_differences ./ spread) .^ 2)
-    ) / (2 * prod(spread))
+    )
 end
 
 function kernel(conn::AbstractConnectivity{T,N_CDT}, lattice::AbstractSpace{T,N_CDT}) where {T,N_CDT}
-    directed_weights(conn, lattice, coordinates(lattice)[origin_idx(lattice)]) .* prod(step(lattice))
+    directed_weights(conn, lattice, coordinates(lattice)[origin_idx(lattice)])
 end
