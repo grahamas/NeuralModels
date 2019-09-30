@@ -4,26 +4,33 @@ using Simulation73
 using Parameters
 using DifferentialEquations: DEDataArray
 using RecursiveArrayTools
-using TensorOperations
+#using TensorOperations
 using MacroTools: splitdef, combinedef, splitarg
 using StaticArrays
 using FFTW
 using LinearAlgebra
 
-export AbstractConnectivity, AbstractNonlinearity, AbstractStimulus
+
+
+export AbstractConnectivityParameter, AbstractConnectivityAction
 
 # Exporting Connectivities
-export ExpSumSqDecayingConnectivity, ExpSumAbsDecayingConnectivity, directed_weights
-export AbstractExpDecayingConnectivity, FFT
+export ExpSumSqDecayingConnectivityParameter, ExpSumAbsDecayingConnectivityParameter, directed_weights,
+    AbstractExpDecayingConnectivityParameter, FFTParameter, FFTAction
 
 # Exporting Nonlinearities
+export AbstractNonlinearity
 export SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity
 
 export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
 
 export make_mutator
 
-export NoStimulus, MultipleDifferentStimuli, MultipleSameStimuli
+export AbstractStimulusParameter, AbstractStimulusAction,
+    NoStimulusParameter, NoStimulusAction,
+    GaussianNoiseStimulusParameter, GaussianNoiseStimulusAction,
+    AbstractTransientBumpStimulusParameter, TransientBumpStimulusAction,
+    SharpBumpStimulusParameter
 
 include("helpers.jl")
 include("neural_data.jl")

@@ -1,51 +1,106 @@
 
-abstract type AbstractStimulus{T,D} <: AbstractParameter{T} end
+abstract type AbstractStimulusParameter{T,D} <: AbstractParameter{T} end
+abstract type AbstractStimulusAction{T,D} <: AbstractSpaceAction{T,D} end
 
-function make_mutator(stimulus_arr::AbstractArray{<:AbstractStimulus{T}}, space::AbstractSpace) where T
-    stimulus_mutators = [make_stimulus(stim, space) for stim in stimulus_arr]
-    function stimulus_mutator!(dA::DATA, A::DATA, t::T) where {T,D,DATA<:AbstractHeterogeneousNeuralData{T,D}}
-        @views for (i_stim, stimulus!) in enumerate(stimulus_mutators)
-            stimulus!(population(dA,i_stim), t)
+# Naturally map stimulus arrays
+function (stim_params::AbstractArray{<:AbstractStimulusParameter{T,N}})(space::AbstractSpace{T,N}) where {T,N}
+    map(stim_params) do param
+        param(space)
+    end
+end
+# Stimulus actions are applied IN ORDER
+function (stims::AbstractArray{<:AbstractStimulusAction})(args...)
+    for stim in stims
+        stim(args...)
+    end
+end
+
+struct NoStimulusParameter{T,N} <: AbstractStimulusParameter{T,N} end
+struct NoStimulusAction{T,N} <: AbstractStimulusAction{T,N} end
+function (nostim::NoStimulusParameter{T,N})(space::AbstractSpace{T,N}) where {T,N}
+    NoStimulusAction{T,N}()
+end
+(ns::NoStimulusAction)(args...) = nothing
+
+
+
+### Gaussian Noise ###
+struct GaussianNoiseStimulusParameter{T,N} <: AbstractStimulusParameter{T,N}
+    mean::T
+    sd::T
+end
+struct GaussianNoiseStimulusAction{T,N} <: AbstractStimulusAction{T,N}
+    mean::T
+    sd::T
+end
+function GaussianNoiseStimulusParameter{T,N}(; sd::Union{T,Nothing}=nothing, SNR::Union{T,Nothing}=nothing, mean::T=0.0) where {T,N}
+    @assert xor(sd == nothing, SNR == nothing)
+    if sd == nothing
+        sd = sqrt(1/10 ^ (SNR / 10))
+    end
+    GaussianNoiseStimulusParameter{T,N}(mean, sd)
+end
+function gaussian_noise!(val::AT, mean::T, sd::T) where {T, AT<:AbstractArray{T}} # assumes signal power is 0db
+    val .+= randn(size(val))
+    val .*= sd
+    val .+= mean
+end
+function (wns::GaussianNoiseStimulusParameter{T,N})(space::AbstractSpace{T,N}) where {T,N}
+    GaussianNoiseStimulusAction{T,N}(wns.mean, wns.sd) # Not actually time dependent
+end
+function (wns::GaussianNoiseStimulusAction{T,N})(val::AbstractArray{T,N}, ignored_val, ignored_t) where {T,N}
+    gaussian_noise!(val, wns.mean, wns.sd) # Not actually time dependent
+end
+##########################
+
+### Transient bumps ###
+# Subtypes of TransientBumpStimulusParameter generate TransientBumpStimulusActions (NOT subtypes)
+abstract type AbstractTransientBumpStimulusParameter{T,N} <: AbstractStimulusParameter{T,N} end
+struct TransientBumpStimulusAction{T,N,FRAME,WINDOWS} <: AbstractStimulusAction{T,N}
+    bump_frame::FRAME
+    time_windows::WINDOWS
+    function TransientBumpStimulusAction(bump_frame::FRAME,time_windows::WINDOWS) where {T,N,FRAME<:AbstractArray{T,N},WINDOWS}
+        new{T,N,FRAME,WINDOWS}(bump_frame,time_windows)
+    end
+end
+function (bump_param::AbstractTransientBumpStimulusParameter{T,N})(space::AbstractSpace{T,N}) where {T,N}
+    bump_frame = on_frame(bump_param, space)
+    TransientBumpStimulusAction(bump_frame, bump_param.time_windows)
+end
+function (bump::TransientBumpStimulusAction{T,N,FRAME})(val::FRAME, ignored, t::T) where {T,N,FRAME<:AbstractArray{T,N}}
+    for window in bump.time_windows
+        if window[1] <= t < window[2]
+            val .+= bump.bump_frame
         end
     end
 end
 
-struct NoStimulus{T,N} <: AbstractStimulus{T,N} end
-function make_stimulus(nostim::NoStimulus, space::AbstractSpace)
-    (val,t) -> return
+struct SharpBumpStimulusParameter{T,N_CDT} <: AbstractTransientBumpStimulusParameter{T,N_CDT}
+    width::T
+    strength::T
+    time_windows::Array{Tuple{T,T},1}
+    center::NTuple{N_CDT,T}
 end
 
-abstract type MultipleStimuli{T,N} <: AbstractStimulus{T,N} end
-struct MultipleDifferentStimuli{T,N} <: MultipleStimuli{T,N}
-    stimuli::AbstractArray{AbstractStimulus{T,N}}
-end
-# Allow for pop arrays
-import Simulation73: pops
-function pops(type::Type{MultipleDifferentStimuli{T,N}}, args...) where {T, N}
-    [MultipleDifferentStimuli{T,N}(collect(stims)) for stims in zip(args...)]
-end
-function make_stimulus(stims::MultipleStimuli, space::AbstractSpace)
-    stimulus_mutators! = make_stimulus.(stims.stimuli, Ref(space)) |> collect
-    (val, t) -> (stimulus_mutators! .|> (fn!) -> fn!(val,t))
+function SharpBumpStimulusParameter(; strength, width,
+        duration=nothing, time_windows=nothing, center)
+    if time_windows == nothing
+        return SharpBumpStimulusParameter(width, strength, [(zero(typeof(strength)), duration)], center)
+    else
+        @assert duration == nothing
+        return SharpBumpStimulusParameter(width, strength, time_windows, center)
+    end
 end
 
-struct MultipleSameStimuli{T,N,S,NS} <: MultipleStimuli{T,N}
-    stimuli::NTuple{NS,S}
+distance(x1::NTuple{N},x2::NTuple{N}) where N = sqrt(sum((x1 .- x2) .^ 2))
+function on_frame(sbs::SharpBumpStimulusParameter{T,N_CDT}, space::AbstractSpace{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT}
+    coords = coordinates(space)
+    frame = zero(space)
+    half_width = sbs.width / 2.0
+    distances = distance.(coords, Ref(sbs.center))
+    on_center = (distances .< half_width) .| (distances .≈ half_width)
+    frame[on_center] .= sbs.strength
+    return frame
 end
-function expand_to_tuple(val, ::Type{Val{NS}}) where NS
-    NTuple{NS}(val for _ in 1:NS)
-end
-function expand_to_tuple(tup::NTuple{NS}, ::Type{Val{NS}}) where NS
-    tup
-end
-function MultipleSameStimuli{T,N,S,NS}(; kwargs...) where {T,N,NS,S <: AbstractStimulus{T,N}}
-    arg_names, arg_values = keys(kwargs), values(kwargs)
-    arg_expanded_values = expand_to_tuple.(collect(arg_values), Val{NS})
-    list_of_arg_values = zip(arg_expanded_values...)
-    MultipleSameStimuli{T,N,S,NS}(
-                  NTuple{NS,S}(
-                      S(; Dict{Symbol,Any}(name => value for (name, value) in zip(arg_names, arg_values))...)
-                  for arg_values in list_of_arg_values
-                  )
-             )
-end
+
+################################
