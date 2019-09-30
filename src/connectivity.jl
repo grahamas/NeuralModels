@@ -74,7 +74,7 @@ function directed_weights(connectivity::CONN, locations::AbstractLattice{T,N_ARR
     diffs = differences(locations, source_location)
     step_size = step(locations)
     unscaled = directed_weight_unscaled.(Ref(CONN), diffs, Ref(connectivity.spread), Ref(step_size))
-    return connectivity.amplitude .* (unscaled ./ prod(connectivity.spread) ./ π^(N_ARR/2))# .* prod(step(locations)))
+    return connectivity.amplitude .* (unscaled ./ prod(connectivity.spread) ./ π^(N_ARR/2) .* prod(step(locations)))
 end
 
 function directed_weights(connectivity::CONN,

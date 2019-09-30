@@ -13,10 +13,10 @@ n_points_dx1 = 1001
 extent_dx1 = 300.0
 dx = extent_dx1 / n_points_dx1
 mid_point = floor(Int, n_points_dx1 / 2) + (n_points_dx1 % 2)
-circle_dx1 = PeriodicLattice{Float64,1}(; n_points=n_points_dx1, extent=extent_dx1)
-line_dx1 = CompactLattice{Float64,1}(; n_points=n_points_dx1, extent=extent_dx1)
-empty_circle_dx1 = zeros(circle_dx1)
-empty_line_dx1 = zeros(line_dx1)
+circle_dx1 = PeriodicLattice{Float64,1}(; n_points=(n_points_dx1,), extent=(extent_dx1,))
+line_dx1 = CompactLattice{Float64,1}(; n_points=(n_points_dx1,), extent=(extent_dx1,))
+empty_circle_dx1 = zeros(size(circle_dx1)...)
+empty_line_dx1 = zeros(size(line_dx1)...)
 
 
 @testset "Stimulus" begin
@@ -56,8 +56,8 @@ end
 
 @testset "Connectivity" begin
     manual_bump = copy(empty_circle_dx1)
-    half_width_dx = 100
-    half_width = half_width_dx * dx
+    half_width = 30.0
+    half_width_dx = floor(Int, half_width / dx)
     manual_bump[mid_point-half_width_dx:mid_point+half_width_dx] .= 1.0
     @testset "Exponentially decaying connectivity" begin
         σ = 20.0
