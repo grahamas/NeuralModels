@@ -15,7 +15,7 @@ using LinearAlgebra
 export AbstractConnectivityParameter, AbstractConnectivityAction
 
 # Exporting Connectivities
-export ExpSumSqDecayingConnectivityParameter, ExpSumAbsDecayingConnectivityParameter, directed_weights,
+export GaussianConnectivityParameter, ExpSumAbsDecayingConnectivityParameter, directed_weights,
     AbstractExpDecayingConnectivityParameter, FFTParameter, FFTAction
 
 # Exporting Nonlinearities
