@@ -43,8 +43,6 @@ empty_line_dx1 = zeros(size(line_dx1)...)
         sharp_bump_stim = sharp_bump_stim_param(line_dx1)
         sharp_bump_test = copy(empty_line_dx1)
         sharp_bump_stim(sharp_bump_test, sharp_bump_test, 0.0)
-        @show sharp_bump_test |> sum
-        @show manual_sharp_bump |> sum
         @test all(sharp_bump_test .== manual_sharp_bump)
         sharp_bump_stim(sharp_bump_test, sharp_bump_test, 55.0)
         @test all(sharp_bump_test .== manual_sharp_bump)
@@ -82,18 +80,37 @@ end
             theory_sq_conv(x) =  (erf((half_width-x[1])/σ) + erf((x[1]+half_width)/σ)) / (2)
             theory_sq_output = theory_sq_conv.(coordinates(circle_dx1))
 
-            @info "Max error: $(maximum(abs.(fft_sq_output .- naive_sq_output) ./ naive_sq_output) * 100)%"
-            @test all(fft_sq_output .≈ theory_sq_output)
-
-            fft_abs_conn_param = FFTParameter(abs_conn_param)
-            fft_abs_conn_action = fft_abs_conn_param(circle_dx1)
-
-            fft_abs_output = zeros(size(manual_bump)...)
-            fft_abs_conn_action(fft_abs_output, manual_bump, 0.0)
-
-            theoretical_abs_conv(x) = 1 - exp(-x[1])
-            theoretical_abs_output = theoretical_abs_conv.(coordinates(circle_dx1))
-
+            @test all(isapprox.(fft_sq_output,theory_sq_output, atol=0.01, rtol=0.1))
+            @test all(isapprox.(naive_sq_output,theory_sq_output, atol=0.01, rtol=0.1))
         end
+    end
+end
+
+@testset "Nonlinearity" begin
+    @testset "Sigmoid" begin
+        sn = SigmoidNonlinearity(a=1.0, θ=5.0)
+        test_vals = [-1.0, 0.0, 0.01, 5.0, 200.0]
+        sn(test_vals)
+        @test test_vals[1] .== 0.0
+        @test test_vals[2] .== 0.0
+        @test isapprox(test_vals[3], 0.0, atol=0.0001)
+        @test isapprox(test_vals[4], 0.5, atol=0.01)
+        @test isapprox(test_vals[5], 1.0, atol=0.01)
+    end 
+    @testset "Sech2" begin
+        sn = Sech2Nonlinearity(a=1.0, θ=5.0)
+        test_vals = [-100.0, 5.0, 200.0]
+        sn(test_vals)
+        @test isapprox(test_vals[1], 0.0, atol=0.001)
+        @test isapprox(test_vals[2], 1.0, atol=0.001)
+        @test isapprox(test_vals[3], 0.0, atol=0.001)
+    end
+    @testset "Gaussian" begin
+        gn = GaussianNonlinearity(sd=1.0, θ=5.0)
+        test_vals = [-100.0, 5.0, 200.0]
+        gn(test_vals)
+        @test isapprox(test_vals[1], 0.0, atol=0.001)
+        @test isapprox(test_vals[2], 1.0, atol=0.001)
+        @test isapprox(test_vals[3], 0.0, atol=0.001)
     end
 end

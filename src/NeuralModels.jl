@@ -19,8 +19,8 @@ export GaussianConnectivityParameter, ExpSumAbsDecayingConnectivityParameter, di
     AbstractExpDecayingConnectivityParameter, FFTParameter, FFTAction
 
 # Exporting Nonlinearities
-export AbstractNonlinearity
-export SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity
+export AbstractNonlinearity,
+    SigmoidNonlinearity, GaussianNonlinearity, Sech2Nonlinearity
 
 export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
 

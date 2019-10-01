@@ -16,7 +16,7 @@ where ``a`` describes the slope's steepness and ``θ`` describes translation of 
 This is "simple" because in practice we use the rectified sigmoid.
 """
 function simple_sigmoid_fn(x, a, theta)
-    1.0 / 1 + exp(-a * (x - theta))
+    1.0 / (1 + exp(-a * (x - theta)))
 end
 
 """
@@ -27,15 +27,15 @@ In practice, we use rectified sigmoid functions because firing rates cannot be n
 TODO: Rename to rectified_sigmoid_fn.
 """
 function rectified_sigmoid_fn(x, a, theta)
-    max(0, simple_sigmoid_fn(x, a, theta) .- simple_sigmoid_fn(0, a, theta))
+    max(0, simple_sigmoid_fn(x, a, theta) - simple_sigmoid_fn(0, a, theta))
 end
 struct SigmoidNonlinearity{T} <: AbstractNonlinearity{T}
     a::T
     θ::T
-    SigmoidNonlinearity(a::T,θ::T) where T = SigmoidNonlinearity{T}(a,θ)
+    SigmoidNonlinearity(a::T,θ::T) where T = new{T}(a,θ)
 end
 SigmoidNonlinearity(; a, θ) = SigmoidNonlinearity(a,θ)
-(s::SigmoidNonlinearity)(inplace::AbstractArray) = inplace .= rectified_sigmoid_fn(inplace, a, theta)
+(s::SigmoidNonlinearity)(inplace::AbstractArray) = inplace .= rectified_sigmoid_fn.(inplace, s.a, s.θ)
 
 
 ############
@@ -48,9 +48,9 @@ end
 struct Sech2Nonlinearity{T} <: AbstractNonlinearity{T}
     a::T
     θ::T
-    Sech2Nonlinearity(a::T,θ::T) where T = Sech2Nonlinearity{T}(a,θ)
+    Sech2Nonlinearity(a::T,θ::T) where T = new{T}(a,θ)
 end
-Sech2Nonlinearity{T}(; a, θ) where T = Sech2Nonlinearity(a,θ)
+Sech2Nonlinearity(; a, θ) = Sech2Nonlinearity(a,θ)
 (sn::Sech2Nonlinearity)(output::AbstractArray) = output .= sech2_fn.(output,sn.a,sn.θ)
 
 ############
@@ -63,7 +63,7 @@ end
 struct GaussianNonlinearity{T} <: AbstractNonlinearity{T}
     sd::T
     θ::T
-    Sech2Nonlinearity(sd::T,θ::T) where T = Sech2Nonlinearity{T}(sd,θ)
+    GaussianNonlinearity(sd::T,θ::T) where T = new{T}(sd,θ)
 end
-GaussianNonlinearity{T}(; a, θ) where T = GaussianNonlinearity(a,θ)
+GaussianNonlinearity(; sd, θ) where T = GaussianNonlinearity(sd,θ)
 (gaussian::GaussianNonlinearity)(output::AbstractArray) = output .= gaussian_fn.(output,gaussian.sd,gaussian.θ)
