@@ -20,13 +20,6 @@ empty_line_dx1 = zeros(size(line_dx1)...)
 
 
 @testset "Stimulus" begin
-    @testset "Non-stimulus" begin
-        nostim = NoStimulusParameter{Float64,1}()
-        nostim_action = nostim(circle_dx1)
-        empty_circle_nostim_test = copy(empty_circle_dx1)
-        nostim_action(empty_circle_nostim_test)
-        @test all(empty_circle_nostim_test .== empty_circle_dx1)
-    end
     @testset "Sharp Bump" begin
         whole_space_stim_param = SharpBumpStimulusParameter(; center=(0.0,), strength=10.0, width=extent_dx1, time_windows=[(0.0,45.0)])
         whole_space_stim = whole_space_stim_param(line_dx1)
@@ -48,7 +41,29 @@ empty_line_dx1 = zeros(size(line_dx1)...)
         @test all(sharp_bump_test .== manual_sharp_bump)
     end
     @testset "Array" begin
-
+        wide = SharpBumpStimulusParameter(; 
+                      strength = 1.0,
+                      width = 20.0,
+                      time_windows = [(0.0, 20.0)])
+        thin = SharpBumpStimulusParameter(; 
+                      strength = 1.0,
+                      width = 10.0,
+                      time_windows = [(0.0, 30.0)])
+        wide_test = copy(empty_line_dx1)
+        thin_test = copy(empty_line_dx1)
+        wide_stim = wide(line_dx1)
+        thin_stim = wide(line_dx1)
+        wide_stim(wide_test, wide_test, 1.0)
+        thin_stim(thin_test, thin_test, 1.0)
+        summed_test = wide_test .+ thin_test
+        combined = [wide, thin]
+        combined_stim = combined(line_dx1)
+        combined_test_early = copy(empty_line_dx1)
+        combined_test_late = copy(empty_line_dx1)
+        combined_stim(combined_test_early, combined_test_early, 1.0)
+        combined_stim(combined_test_late, combined_test_late, 25.0)
+        @test all(combined_test_early .== summed_test)
+        @test all(combined_test_late .== thin_test)
     end
 end
 
@@ -82,6 +97,8 @@ end
 
             @test all(isapprox.(fft_sq_output,theory_sq_output, atol=0.01, rtol=0.1))
             @test all(isapprox.(naive_sq_output,theory_sq_output, atol=0.01, rtol=0.1))
+        end
+        @testset "FFT pops" begin
         end
     end
 end

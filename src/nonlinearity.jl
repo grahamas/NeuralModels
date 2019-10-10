@@ -35,7 +35,7 @@ struct SigmoidNonlinearity{T} <: AbstractNonlinearity{T}
     SigmoidNonlinearity(a::T,θ::T) where T = new{T}(a,θ)
 end
 SigmoidNonlinearity(; a, θ) = SigmoidNonlinearity(a,θ)
-(s::SigmoidNonlinearity)(inplace::AbstractArray) = inplace .= rectified_sigmoid_fn.(inplace, s.a, s.θ)
+(s::SigmoidNonlinearity)(inplace::AbstractArray, ignored_args...) = inplace .= rectified_sigmoid_fn.(inplace, s.a, s.θ)
 
 
 ############
@@ -51,7 +51,7 @@ struct Sech2Nonlinearity{T} <: AbstractNonlinearity{T}
     Sech2Nonlinearity(a::T,θ::T) where T = new{T}(a,θ)
 end
 Sech2Nonlinearity(; a, θ) = Sech2Nonlinearity(a,θ)
-(sn::Sech2Nonlinearity)(output::AbstractArray) = output .= sech2_fn.(output,sn.a,sn.θ)
+(sn::Sech2Nonlinearity)(output::AbstractArray, ignored_args...) = output .= sech2_fn.(output,sn.a,sn.θ)
 
 ############
 
@@ -66,4 +66,4 @@ struct GaussianNonlinearity{T} <: AbstractNonlinearity{T}
     GaussianNonlinearity(sd::T,θ::T) where T = new{T}(sd,θ)
 end
 GaussianNonlinearity(; sd, θ) where T = GaussianNonlinearity(sd,θ)
-(gaussian::GaussianNonlinearity)(output::AbstractArray) = output .= gaussian_fn.(output,gaussian.sd,gaussian.θ)
+(gaussian::GaussianNonlinearity)(output::AbstractArray, ignored_args...) = output .= gaussian_fn.(output,gaussian.sd,gaussian.θ)

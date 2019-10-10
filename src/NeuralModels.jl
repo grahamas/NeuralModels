@@ -26,9 +26,7 @@ export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
 
 export make_mutator
 
-export AbstractStimulusParameter, AbstractStimulusAction,
-    NoStimulusParameter, NoStimulusAction,
-    GaussianNoiseStimulusParameter, GaussianNoiseStimulusAction,
+export GaussianNoiseStimulusParameter, GaussianNoiseStimulusAction,
     AbstractTransientBumpStimulusParameter, TransientBumpStimulusAction,
     SharpBumpStimulusParameter
 

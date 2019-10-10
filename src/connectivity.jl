@@ -1,5 +1,5 @@
 abstract type AbstractConnectivityParameter{T,N_CDT} <: AbstractParameter{T} end
-abstract type AbstractConnectivityAction{T,N_CDT} <: AbstractSpaceAction{T,N_CDT} end
+abstract type AbstractConnectivityAction{T,N_CDT} <: AbstractSpaceInteraction{T,N_CDT} end
 struct NaiveConnectivityAction{T,N_CDT,CONN,SPACE} <: AbstractConnectivityAction{T,N_CDT}
     conn::CONN
     space::SPACE
@@ -18,18 +18,20 @@ struct FFTParameter{T,N_CDT,C<:AbstractConnectivityParameter{T,N_CDT}} <: Abstra
     connectivity::C
     FFTParameter(c::C) where {T,N_CDT,C<:AbstractConnectivityParameter{T,N_CDT}} = new{T,N_CDT,C}(c)
 end
-struct FFTAction{T,N_CDT,KERN<:AbstractArray{T,N_CDT},OP,IOP} <: AbstractConnectivityAction{T,N_CDT}
+struct FFTAction{T,N_CDT,KERN<:AbstractArray{Complex{T},N_CDT},OP,IOP} <: AbstractConnectivityAction{T,N_CDT}
     kernel::KERN
     fft_op::OP
     ifft_op::IOP
-    FFTAction(kernel::KERN, fft_op::OP, ifft_op::IOP) where {T,N,KERN<:AbstractArray{T,N},OP,IOP} = new{T,N,KERN,OP,IOP}(kernel, fft_op, ifft_op)
+    FFTAction(kernel::KERN, fft_op::OP, ifft_op::IOP) where {T,N,KERN<:AbstractArray{Complex{T},N},OP,IOP} = new{T,N,KERN,OP,IOP}(kernel, fft_op, ifft_op)
 end
+# TODO: Assumes populations
 function (fftp::FFTParameter)(space::AbstractSpace)
     kern = kernel(fftp.connectivity, space)
     kernel_fftd = rfft(kern)
-    space_zeros = zeros(space)
-    fft_op = plan_rfft(space_zeros; flags=FFTW.PATIENT)
-    ifft_op = plan_irfft(fft_op * space_zeros, size(space,1); flags=FFTW.PATIENT)
+    multi_pop_space = population_repeat(zeros(space),2)
+    single_pop_zeros = population(multi_pop_space, 1)
+    fft_op = plan_rfft(single_pop_zeros; flags=(FFTW.PATIENT | FFTW.UNALIGNED))
+    ifft_op = plan_irfft(fft_op * single_pop_zeros, size(space,1); flags=(FFTW.PATIENT | FFTW.UNALIGNED))
     FFTAction(kernel_fftd, fft_op, ifft_op)
 end
 function (a::FFTAction)(output::AbstractArray, input::AbstractArray, ignored_t)
