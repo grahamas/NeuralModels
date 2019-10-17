@@ -7,6 +7,7 @@ using Simulation73
 using NeuralModels
 using DSP
 using SpecialFunctions
+using Plots; unicodeplots()
 
 function make_testing_lattice(; n_points=1001, extent=300.0, type=CompactLattice{Float64,1})
     dx = extent / n_points
@@ -41,11 +42,11 @@ end
     end
     @testset "Array" begin
         n_points, extent, dx, mid_point, lattice, lattice_zeros = make_testing_lattice(n_points=100, extent=100.0)
-        wide = SharpBumpStimulusParameter(; 
+        wide = SharpBumpStimulusParameter(;
                       strength = 1.0,
                       width = 20.0,
                       time_windows = [(0.0, 20.0)])
-        thin = SharpBumpStimulusParameter(; 
+        thin = SharpBumpStimulusParameter(;
                       strength = 1.0,
                       width = 10.0,
                       time_windows = [(0.0, 30.0)])
@@ -71,79 +72,82 @@ end
     end
 end
 
-@testset "Connectivity" begin
-    @testset "Odd n_points" begin
-        n_points, extent, dx, mid_point, circle, circle_zeros = make_testing_lattice(type=PeriodicLattice{Float64,1})
-        manual_bump = copy(circle_zeros)
-        half_width = 30.0
-        half_width_dx = floor(Int, half_width / dx)
-        manual_bump[mid_point-half_width_dx:mid_point+half_width_dx] .= 1.0
-        @testset "Exponentially decaying connectivity" begin
-            σ = 20.0
-            sq_conn_param = GaussianConnectivityParameter(amplitude=1.0, spread=(σ,))
-            dsp_sq_output = conv(NeuralModels.kernel(sq_conn_param, circle), manual_bump)
-            abs_conn_param = ExpSumAbsDecayingConnectivityParameter(amplitude=1.0, spread=(σ,))
-            dsp_sq_output = conv(NeuralModels.kernel(abs_conn_param, circle), manual_bump)
-            @test all(directed_weights(sq_conn_param, circle, (0.0,)) .≈ directed_weights(sq_conn_param, circle, (extent,)))
-            @testset "FFT" begin
-                sq_conn_action = sq_conn_param(circle)
-                abs_conn_action = abs_conn_param(circle)
-                naive_sq_output = zeros(size(manual_bump)...)
-                sq_conn_action(naive_sq_output, manual_bump, 0.0)
 
-                fft_sq_conn_param = FFTParameter(sq_conn_param)
-                fft_sq_conn_action = fft_sq_conn_param(circle)
+function fft_n_points_test(n_points, atol=0.01, rtol=0.1)
+    n_points, extent, dx, mid_point, circle, circle_zeros = make_testing_lattice(n_points=n_points, type=PeriodicLattice{Float64,1})
+    manual_bump = copy(circle_zeros)
+    half_width = 30.0
+    half_width_dx = floor(Int, half_width / dx)
+    manual_bump[mid_point-half_width_dx:mid_point+half_width_dx] .= 1.0
+    fft_gaussian_output, naive_gaussian_output, analytical_gaussian_output = nothing, nothing, nothing
+    @testset "Exponentially decaying connectivity" begin
+        σ = 20.0
+        gaussian_conn_param = GaussianConnectivityParameter(amplitude=1.0, spread=(σ,))
+        gaussian_dsp_output = conv(NeuralModels.kernel(gaussian_conn_param, circle), manual_bump)
+        abs_conn_param = ExpSumAbsDecayingConnectivityParameter(amplitude=1.0, spread=(σ,))
+        abs_dsp_output = conv(NeuralModels.kernel(abs_conn_param, circle), manual_bump)
+        @test all(directed_weights(gaussian_conn_param, circle, (0.0,)) .≈ directed_weights(gaussian_conn_param, circle, (extent,)))
+        @testset "FFT" begin
+            gaussian_conn_action = gaussian_conn_param(circle)
+            abs_conn_action = abs_conn_param(circle)
 
-                fft_sq_output = zeros(size(manual_bump)...)
-                fft_sq_conn_action(fft_sq_output, manual_bump, 0.0)
+            naive_gaussian_output = zeros(size(manual_bump)...)
+            gaussian_conn_action(naive_gaussian_output, manual_bump, 0.0)
 
-                # Assumes analytical form of Gaussian normalizes to 1
-                theory_sq_conv(x) =  (erf((half_width-x[1])/σ) + erf((x[1]+half_width)/σ)) / (2)
-                theory_sq_output = theory_sq_conv.(coordinates(circle))
+            fft_gaussian_conn_param = FFTParameter(gaussian_conn_param)
+            fft_gaussian_conn_action = fft_gaussian_conn_param(circle)
 
-                @test all(isapprox.(fft_sq_output,theory_sq_output, atol=0.01, rtol=0.1))
-                @test all(isapprox.(naive_sq_output,theory_sq_output, atol=0.01, rtol=0.1))
+            fft_gaussian_output = zeros(size(manual_bump)...)
+            fft_gaussian_conn_action(fft_gaussian_output, manual_bump, 0.0)
+
+            # Assumes analytical form of Gaussian normalizes to 1
+            analytical_gaussian_conv(x) =  (erf((half_width-x[1])/σ) + erf((x[1]+half_width)/σ)) / (2)
+            analytical_gaussian_output = analytical_gaussian_conv.(coordinates(circle))
+
+            @test all(isapprox.(fft_gaussian_output,analytical_gaussian_output, atol=atol, rtol=rtol))
+            @test all(isapprox.(naive_gaussian_output,analytical_gaussian_output, atol=atol, rtol=rtol))
+        end
+        @testset "FFT pops" begin
+            sigmas = [20.0 10.0; 30.0 40.0] .|> (x) -> (x,)
+            amplitudes = [1.0 -1.0; 1.0 1.0]
+            gaussian_conn_pop_params = pops(GaussianConnectivityParameter;
+                amplitude=amplitudes, spread=sigmas)
+
+
+            pops_bump = population_repeat(manual_bump, 2)
+            manual_input = copy(pops_bump)
+            manual_output = zeros(size(pops_bump))
+            fft_input = copy(pops_bump)
+            fft_output = zeros(size(pops_bump))
+            plot(manual_input) |> display
+
+            for i in 1:2
+                for j in 1:2
+                    manual_conn_action = FFTParameter(GaussianConnectivityParameter(amplitude=amplitudes[i,j], spread=sigmas[i,j]))(circle)
+                    manual_conn_action(population(manual_output,i), population(manual_input,j), 0.0)
+                end
             end
-            @testset "FFT pops" begin
-            end
+
+            fft_gaussian_conn_pop_params = FFTParameter(gaussian_conn_pop_params)
+            fft_pops_action = fft_gaussian_conn_pop_params(circle)
+            plot(fft_input) |> display
+            fft_pops_action(fft_output, fft_input, 0.0)
+
+            plot(fft_output) |> display
+            plot(manual_output) |> display
+            @test all(fft_output .== manual_output) # Manual output just unrolls what the pops should be doing; no approximation
         end
     end
+    return (analytical_gaussian_output, naive_gaussian_output, fft_gaussian_output)
+end
+
+@testset "Connectivity" begin
+    @testset "Odd n_points" begin
+        (analytical_gaussian_output, naive_gaussian_output, fft_gaussian_output) = fft_n_points_test(101, 0.01, 0.1)
+    end
     @testset "Even n_points" begin
-        n_points, extent, dx, mid_point, circle, circle_zeros = make_testing_lattice(n_points=1000, type=PeriodicLattice{Float64,1})
-        manual_bump = copy(circle_zeros)
-        half_width = 30.0
-        half_width_dx = floor(Int, half_width / dx)
-        manual_bump[mid_point-half_width_dx:mid_point+half_width_dx] .= 1.0
-        @testset "Exponentially decaying connectivity" begin
-            σ = 20.0
-            sq_conn_param = GaussianConnectivityParameter(amplitude=1.0, spread=(σ,))
-            dsp_sq_output = conv(NeuralModels.kernel(sq_conn_param, circle), manual_bump)
-            abs_conn_param = ExpSumAbsDecayingConnectivityParameter(amplitude=1.0, spread=(σ,))
-            dsp_sq_output = conv(NeuralModels.kernel(abs_conn_param, circle), manual_bump)
-            @test all(directed_weights(sq_conn_param, circle, (0.0,)) .≈ directed_weights(sq_conn_param, circle, (extent,)))
-            @testset "FFT" begin
-                sq_conn_action = sq_conn_param(circle)
-                abs_conn_action = abs_conn_param(circle)
-                naive_sq_output = zeros(size(manual_bump)...)
-                sq_conn_action(naive_sq_output, manual_bump, 0.0)
-
-                fft_sq_conn_param = FFTParameter(sq_conn_param)
-                fft_sq_conn_action = fft_sq_conn_param(circle)
-
-                fft_sq_output = zeros(size(manual_bump)...)
-                fft_sq_conn_action(fft_sq_output, manual_bump, 0.0)
-
-                # Assumes analytical form of Gaussian normalizes to 1
-                theory_sq_conv(x) =  (erf((half_width-x[1])/σ) + erf((x[1]+half_width)/σ)) / (2)
-                theory_sq_output = theory_sq_conv.(coordinates(circle))
-
-                @test all(isapprox.(fft_sq_output,theory_sq_output, atol=0.01, rtol=0.1))
-                @test all(isapprox.(naive_sq_output,theory_sq_output, atol=0.01, rtol=0.1))
-            end
-            @testset "FFT pops" begin
-            end
-        end
-    end 
+        (analytical_gaussian_output, naive_gaussian_output, fft_gaussian_output) = fft_n_points_test(100)
+    end
 end
 
 @testset "Nonlinearity" begin
@@ -156,7 +160,7 @@ end
         @test isapprox(test_vals[3], 0.0, atol=0.0001)
         @test isapprox(test_vals[4], 0.5, atol=0.01)
         @test isapprox(test_vals[5], 1.0, atol=0.01)
-    end 
+    end
     @testset "Sech2" begin
         sn = Sech2Nonlinearity(a=1.0, θ=5.0)
         test_vals = [-100.0, 5.0, 200.0]
