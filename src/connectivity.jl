@@ -9,7 +9,7 @@ end
 function (a::NaiveConnectivityAction)(output, input, ignored_t)
     coords = coordinates(a.space)
     for (i_coord, coord) in enumerate(coords)
-        weights = directed_weights(a.conn, a.space, coord)
+        weights = directed_weights(a.conn, a.space, coord) .* simpson_weights(a.space) .* prod(step(a.space)) # MULT BY VOL EL
         output[i_coord] = sum(weights .* input)
     end
 end
@@ -27,7 +27,8 @@ end
 # TODO: Assumes populations
 function (fftp::FFTParameter)(space::AbstractSpace)
     kern = kernel(fftp.connectivity, space)
-    kernel_fftd = rfft(kern)
+    kern_dx = kern .* prod(step(space)) # MULTIPLY BY VOLUME ELEMENT
+    kernel_fftd = rfft(kern_dx)
     multi_pop_space = population_repeat(zeros(space),2)
     single_pop_zeros = population(multi_pop_space, 1)
     fft_op = plan_rfft(single_pop_zeros; flags=(FFTW.PATIENT | FFTW.UNALIGNED))
@@ -54,51 +55,50 @@ function unit_scale(arr::AbstractArray)
     arr ./ sum(arr)
 end
 
-# Version for directed weights from source
-function directed_weights(connectivity::CONN, locations::AbstractLattice{T,N_ARR,N_CDT},
-                          source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT,CONN<:AbstractExpDecayingConnectivityParameter{T,N_CDT}}
+
+# Generic functions to unpack Lattice for application of connectivity
+function directed_weights(connectivity::AbstractConnectivityParameter{T,N_CDT}, locations::AbstractLattice{T,N_ARR,N_CDT},
+                          source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT}
     diffs = differences(locations, source_location)
+    center_diffs = differences(locations, coordinates(locations)[origin_idx(locations)])
     step_size = step(locations)
-    unscaled = directed_weight_unscaled.(Ref(CONN), diffs, Ref(connectivity.spread), Ref(step_size))
-    return connectivity.amplitude .* (unscaled ./ sum(unscaled))
+    return apply_connectivity(connectivity, diffs, step_size, center_diffs)
+end
+# function directed_weights(connectivity::AbstractConnectivity{T,N_CDT}, locations::AbstractLattice{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT}
+#     diffs = differences(locations)
+#     diff_frame = differences(locations, coordinates(locations)[origin_idx(locations)])
+#     step_size = step(locations)
+#     return apply_connectivity(connectivity, diffs, step_size, diff_frame)
+# end
+
+# function apply_connectivity(connectivity::CONN, diffs::DIFFS, step_size::NTuple{N_CDT,T}, center_diffs::DIFFS) where {T,N_ARR,N_CDT,CDT<:NTuple{N_CDT,T},DIFFS<:AbstractArray{CDT,N_ARR},CONN<:AbstractConnectivityParameter{T,N_CDT}}
+#     unscaled = apply_connectivity_unscaled.(Ref(connectivity), diffs)
+#     center_norm_val = sum(apply_connectivity_unscaled.(Ref(connectivity), center_diffs))
+#     return connectivity.amplitude .* (unscaled ./ center_norm_val)
+# end
+
+function apply_connectivity(connectivity::CONN, diffs::DIFFS, step_size::NTuple{N_CDT,T}, center_diffs::DIFFS) where {T,N_ARR,N_CDT,CDT<:NTuple{N_CDT,T},DIFFS<:AbstractArray{CDT,N_ARR},CONN<:GaussianConnectivityParameter{T,N_CDT}}
+    unscaled = apply_connectivity_unscaled.(Ref(connectivity), diffs)
+    scaling_diffs = apply_connectivity_unscaled.(Ref(connectivity), center_diffs)
+    sum_scaling = sum(scaling_diffs)
+    return connectivity.amplitude .* unscaled ./ (sqrt(prod(connectivity.spread .^ 2)) .* (2π)^(N_CDT/2))
+    #return connectivity.amplitude .* (unscaled ./ sum_scaling)
 end
 
-function directed_weights(connectivity::CONN,
-                          locations::AbstractLattice{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT,CONN<:AbstractExpDecayingConnectivityParameter{T,N_CDT}}
-    diffs = differences(locations)
-    step_size = step(locations)
-    center_norm_val = sum(directed_weight_unscaled.(Ref(CONN), differences(locations, coordinates(locations)[origin_idx(locations)]), Ref(connectivity.spread), Ref(step_size)))
-    return connectivity.amplitude .* (directed_weight_unscaled.(Ref(CONN), diffs, Ref(connectivity.spread), Ref(step_size)) ./ center_norm_val)
-end
-
-function directed_weights(connectivity::CONN, locations::AbstractLattice{T,N_ARR,N_CDT},
-                          source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT,CONN<:GaussianConnectivityParameter{T,N_CDT}}
-    diffs = differences(locations, source_location)
-    step_size = step(locations)
-    unscaled = directed_weight_unscaled.(Ref(CONN), diffs, Ref(connectivity.spread), Ref(step_size))
-    return connectivity.amplitude .* (unscaled ./ prod(connectivity.spread) ./ π^(N_ARR/2) .* prod(step(locations)))
-end
-
-function directed_weights(connectivity::CONN,
-                          locations::AbstractLattice{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT,CONN<:GaussianConnectivityParameter{T,N_CDT}}
-    diffs = differences(locations)
-    step_size = step(locations)
-    return connectivity.amplitude .* (
-               directed_weight_unscaled.(Ref(CONN), diffs, Ref(connectivity.spread), Ref(step_size)) ./
-               (prod(spread) * π^(N_CDT/2) * prod(step(locations))))
-end
-function directed_weight_unscaled(::Type{ExpSumAbsDecayingConnectivityParameter{T,N_CDT}}, coord_differences::Tup, spread::Tup, step_size::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
+function apply_connectivity_unscaled(conn::ExpSumAbsDecayingConnectivityParameter{T,N_CDT}, coord_differences::Tup) where {T,N_CDT,Tup<:NTuple{N_CDT,T}}
     exp(
-        -sum(abs.(coord_differences ./ spread))
+        -sum(abs.(coord_differences ./ conn.spread))
     )
 end
 
-function directed_weight_unscaled(::Type{GaussianConnectivityParameter{T,N_CDT}}, coord_differences::Tup, spread::Tup, step_size::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
+function apply_connectivity_unscaled(conn::GaussianConnectivityParameter{T,N_CDT}, coord_differences::Tup) where {T,N_CDT, Tup<:NTuple{N_CDT,T}}
     exp(
-        -sum( (coord_differences ./ spread) .^ 2)
+        -sum( (coord_differences ./ conn.spread) .^ 2) / 2
     )
 end
 
 function kernel(conn::AbstractConnectivityParameter{T,N_CDT}, lattice::AbstractSpace{T,N_CDT}) where {T,N_CDT}
-    directed_weights(conn, lattice, coordinates(lattice)[origin_idx(lattice)])
+    # Kernel has ZERO DIST at its center (or floor(extent/2) + 1)
+    fft_centered_differences = differences(lattice, coordinates(lattice)[fft_center_dx(lattice)])
+    apply_connectivity(conn, fft_centered_differences, step(lattice), fft_centered_differences)    
 end
