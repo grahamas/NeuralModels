@@ -35,20 +35,23 @@ end
 # Subtypes of TransientBumpStimulusParameter generate TransientBumpStimulusActions (NOT subtypes)
 abstract type AbstractTransientBumpStimulusParameter{T} <: AbstractStimulusParameter{T} end
 struct TransientBumpStimulusAction{T,N,FRAME,WINDOWS} <: AbstractStimulusAction{T,N}
+    baseline::T
     bump_frame::FRAME
     time_windows::WINDOWS
-    function TransientBumpStimulusAction(bump_frame::FRAME,time_windows::WINDOWS) where {T,N,FRAME<:AbstractArray{T,N},WINDOWS}
-        new{T,N,FRAME,WINDOWS}(bump_frame,time_windows)
+    function TransientBumpStimulusAction(baseline::T, bump_frame::FRAME,time_windows::WINDOWS) where {T,N,FRAME<:AbstractArray{T,N},WINDOWS}
+        new{T,N,FRAME,WINDOWS}(baseline,bump_frame,time_windows)
     end
 end
 function (bump_param::AbstractTransientBumpStimulusParameter{T})(space::AbstractSpace{T,N}) where {T,N}
     bump_frame = on_frame(bump_param, space)
-    TransientBumpStimulusAction(bump_frame, bump_param.time_windows)
+    TransientBumpStimulusAction(bump_param.baseline, bump_frame, bump_param.time_windows)
 end
 function (bump::TransientBumpStimulusAction{T,N})(val::AbstractArray{T,N}, ignored, t::T) where {T,N}
     for window in bump.time_windows
         if window[1] <= t < window[2]
             val .+= bump.bump_frame
+        else
+            val .+= bump.baseline
         end
     end
 end
@@ -58,15 +61,16 @@ struct SharpBumpStimulusParameter{T} <: AbstractTransientBumpStimulusParameter{T
     strength::T
     time_windows::Array{Tuple{T,T},1}
     center::Union{NTuple,Nothing}
+    baseline::T
 end
 
 function SharpBumpStimulusParameter(; strength, width,
-        duration=nothing, time_windows=nothing, center=nothing)
+        duration=nothing, time_windows=nothing, center=nothing, baseline=0.0)
     if time_windows == nothing
-        return SharpBumpStimulusParameter(width, strength, [(zero(typeof(strength)), duration)], center)
+        return SharpBumpStimulusParameter(width, strength, [(zero(typeof(strength)), duration)], center, baseline)
     else
         @assert duration == nothing
-        return SharpBumpStimulusParameter(width, strength, time_windows, center)
+        return SharpBumpStimulusParameter(width, strength, time_windows, center, baseline)
     end
 end
 
