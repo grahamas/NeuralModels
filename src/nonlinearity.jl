@@ -67,3 +67,6 @@ struct GaussianNonlinearity{T} <: AbstractNonlinearity{T}
 end
 GaussianNonlinearity(; sd, θ) where T = GaussianNonlinearity(sd,θ)
 (gaussian::GaussianNonlinearity)(output::AbstractArray, ignored_source, ignored_t) = output .= gaussian_fn.(output,gaussian.sd,gaussian.θ)
+
+
+    
