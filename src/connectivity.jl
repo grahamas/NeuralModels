@@ -3,7 +3,10 @@ abstract type AbstractConnectivityAction{T,N_CDT} <: AbstractSpaceInteraction{T,
 struct NaiveConnectivityAction{T,N_CDT,CONN,SPACE} <: AbstractConnectivityAction{T,N_CDT}
     conn::CONN
     space::SPACE
-    NaiveConnectivityAction(conn::CONN, space::SPACE) where {T,N,CONN<:AbstractConnectivityParameter{T,N},SPACE<:AbstractSpace{T,N}} = new{T,N,CONN,SPACE}(conn,space)
+    NaiveConnectivityAction(conn::CONN, space::SPACE) where {T,N,CONN<:AbstractConnectivityParameter{T,N},SPACE<:AbstractSpace{T,N}} = begin
+        validate(a,space)
+        new{T,N,CONN,SPACE}(conn,space)
+    end
 end
 (a::AbstractConnectivityParameter)(space::AbstractSpace) = NaiveConnectivityAction(a,space)
 function (a::NaiveConnectivityAction)(output, input, ignored_t)
@@ -41,6 +44,7 @@ end
 
 abstract type AbstractExpDecayingConnectivityParameter{T,N_CDT} <: AbstractConnectivityParameter{T,N_CDT} end
 (t::Type{<:AbstractExpDecayingConnectivityParameter})(; amplitude, spread) = t(amplitude, spread)
+validate(a::AbstractExpDecayingConnectivityParameter, space) = (@show a.spread; @show step(space); @assert all(a.spread .> Ref(step(space))))
 struct ExpSumAbsDecayingConnectivityParameter{T,N_CDT} <: AbstractExpDecayingConnectivityParameter{T,N_CDT}
     amplitude::T
     spread::NTuple{N_CDT,T}
