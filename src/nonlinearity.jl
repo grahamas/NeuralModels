@@ -77,5 +77,5 @@ struct DifferenceOfSigmoids{T} <: AbstractNonlinearity{T}
     DifferenceOfSigmoids(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T = new{T}(fsig,bsig)
 end
 DifferenceOfSigmoids(; firing_a, firing_θ, blocking_a, blocking_θ) where T = DifferenceOfSigmoids(SigmoidNonlinearity(; θ=firing_θ,a=firing_a), SigmoidNonlinearity(; θ=blocking_θ,a=blocking_a))
-(dos::DifferenceOfSigmoids)(output::AbstractArray, ignored_source, ignored_t) = output .= NeuralModels.rectified_sigmoid_fn.(output, dos.firing_sigmoid.a, dos.firing_sigmoid.θ) - NeuralModels.rectified_sigmoid_fn.(output, dos.blocking_sigmoid.a, dos.blocking_sigmoid.θ)
+(dos::DifferenceOfSigmoids)(output::AbstractArray, ignored_source, ignored_t) = output .= rectified_sigmoid_fn.(output, dos.firing_sigmoid.a, dos.firing_sigmoid.θ) - rectified_sigmoid_fn.(output, dos.blocking_sigmoid.a, dos.blocking_sigmoid.θ)
     
