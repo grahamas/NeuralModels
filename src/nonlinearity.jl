@@ -19,6 +19,10 @@ function simple_sigmoid_fn(x, a, theta)
     1.0 / (1 + exp(-a * (x - theta)))
 end
 
+function zeroed_sigmoid_fn(x, a, theta)
+    simple_sigmoid_fn(x, a, theta) - simple_sigmoid_fn(0., a, theta)
+end
+
 """
 A rectified version of `simple_sigmoid_fn`.
 
@@ -26,8 +30,8 @@ In practice, we use rectified sigmoid functions because firing rates cannot be n
 
 TODO: Rename to rectified_sigmoid_fn.
 """
-function rectified_sigmoid_fn(x, a, theta)
-    max(0, simple_sigmoid_fn(x, a, theta) - simple_sigmoid_fn(0, a, theta))
+function rectified_zeroed_sigmoid_fn(x, a, theta)
+    max(0, zeroed_sigmoid_fn(x, a, theta))
 end
 struct SigmoidNonlinearity{T} <: AbstractNonlinearity{T}
     a::T
@@ -35,7 +39,18 @@ struct SigmoidNonlinearity{T} <: AbstractNonlinearity{T}
     SigmoidNonlinearity(a::T,θ::T) where T = new{T}(a,θ)
 end
 SigmoidNonlinearity(; a, θ) = SigmoidNonlinearity(a,θ)
-(s::SigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= rectified_sigmoid_fn.(inplace, s.a, s.θ)
+(s::SigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= rectified_zeroed_sigmoid_fn.(inplace, s.a, s.θ)
+
+function rectified_unzeroed_sigmoid_fn(x, a, theta)
+    max(0, simple_sigmoid_fn(x, a, theta))
+end
+struct UnzeroedSigmoidNonlinearity{T} <: AbstractNonlinearity{T}
+    a::T
+    θ::T
+    UnzeroedSigmoidNonlinearity(a::T,θ::T) where T = new{T}(a,θ)
+end
+UnzeroedSigmoidNonlinearity(; a, θ) = UnzeroedSigmoidNonlinearity(a,θ)
+(s::UnzeroedSigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= rectified_unzeroed_sigmoid_fn.(inplace, s.a, s.θ)
 
 
 ############

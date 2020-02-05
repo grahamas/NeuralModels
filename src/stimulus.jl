@@ -77,7 +77,7 @@ end
 distance(x1::NTuple{N},x2::NTuple{N}) where N = sqrt(sum((x1 .- x2) .^ 2))
 function on_frame(sbs::SharpBumpStimulusParameter{T}, space::AbstractSpace{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT}
     coords = coordinates(space)
-    frame = zero(space)
+    frame = zero(space) .+ sbs.baseline
     half_width = sbs.width / 2.0
     center_val = sbs.center == nothing ? coords[origin_idx(space)] : sbs.center
     distances = distance.(coords, Ref(center_val))

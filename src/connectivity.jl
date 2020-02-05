@@ -4,7 +4,7 @@ struct NaiveConnectivityAction{T,N_CDT,CONN,SPACE} <: AbstractConnectivityAction
     conn::CONN
     space::SPACE
     NaiveConnectivityAction(conn::CONN, space::SPACE) where {T,N,CONN<:AbstractConnectivityParameter{T,N},SPACE<:AbstractSpace{T,N}} = begin
-        validate(a,space)
+        validate(conn,space)
         new{T,N,CONN,SPACE}(conn,space)
     end
 end
@@ -13,7 +13,7 @@ function (a::NaiveConnectivityAction)(output, input, ignored_t)
     coords = coordinates(a.space)
     for (i_coord, coord) in enumerate(coords)
         weights = directed_weights(a.conn, a.space, coord) .* simpson_weights(a.space) .* prod(step(a.space)) # MULT BY VOL EL
-        output[i_coord] = sum(weights .* input)
+        output[i_coord] += sum(weights .* input)
     end
 end
         
@@ -44,7 +44,7 @@ end
 
 abstract type AbstractExpDecayingConnectivityParameter{T,N_CDT} <: AbstractConnectivityParameter{T,N_CDT} end
 (t::Type{<:AbstractExpDecayingConnectivityParameter})(; amplitude, spread) = t(amplitude, spread)
-validate(a::AbstractExpDecayingConnectivityParameter, space) = (@show a.spread; @show step(space); @assert all(a.spread .> Ref(step(space))))
+validate(a::AbstractExpDecayingConnectivityParameter, space) = (@show a.spread; @show step(space); @assert all(a.spread .> step(space)))
 struct ExpSumAbsDecayingConnectivityParameter{T,N_CDT} <: AbstractExpDecayingConnectivityParameter{T,N_CDT}
     amplitude::T
     spread::NTuple{N_CDT,T}
@@ -68,18 +68,12 @@ function directed_weights(connectivity::AbstractConnectivityParameter{T,N_CDT}, 
     step_size = step(locations)
     return apply_connectivity(connectivity, diffs, step_size, center_diffs)
 end
-# function directed_weights(connectivity::AbstractConnectivity{T,N_CDT}, locations::AbstractLattice{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT}
-#     diffs = differences(locations)
-#     diff_frame = differences(locations, coordinates(locations)[origin_idx(locations)])
-#     step_size = step(locations)
-#     return apply_connectivity(connectivity, diffs, step_size, diff_frame)
-# end
 
-# function apply_connectivity(connectivity::CONN, diffs::DIFFS, step_size::NTuple{N_CDT,T}, center_diffs::DIFFS) where {T,N_ARR,N_CDT,CDT<:NTuple{N_CDT,T},DIFFS<:AbstractArray{CDT,N_ARR},CONN<:AbstractConnectivityParameter{T,N_CDT}}
-#     unscaled = apply_connectivity_unscaled.(Ref(connectivity), diffs)
-#     center_norm_val = sum(apply_connectivity_unscaled.(Ref(connectivity), center_diffs))
-#     return connectivity.amplitude .* (unscaled ./ center_norm_val)
-# end
+function apply_connectivity(connectivity::CONN, diffs::DIFFS, step_size::NTuple{N_CDT,T}, center_diffs::DIFFS) where {T,N_ARR,N_CDT,CDT<:NTuple{N_CDT,T},DIFFS<:AbstractArray{CDT,N_ARR},CONN<:ExpSumAbsDecayingConnectivityParameter{T,N_CDT}}
+    unscaled = apply_connectivity_unscaled.(Ref(connectivity), diffs)
+    # TODO validate use of prod
+    return connectivity.amplitude .* unscaled ./ (2 * prod(connectivity.spread)) # note that stepsize is used in calling function
+end
 
 function apply_connectivity(connectivity::CONN, diffs::DIFFS, step_size::NTuple{N_CDT,T}, center_diffs::DIFFS) where {T,N_ARR,N_CDT,CDT<:NTuple{N_CDT,T},DIFFS<:AbstractArray{CDT,N_ARR},CONN<:GaussianConnectivityParameter{T,N_CDT}}
     unscaled = apply_connectivity_unscaled.(Ref(connectivity), diffs)
