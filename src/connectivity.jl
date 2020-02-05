@@ -45,7 +45,7 @@ end
 abstract type AbstractExpDecayingConnectivityParameter{T,N_CDT} <: AbstractConnectivityParameter{T,N_CDT} end
 (t::Type{<:AbstractExpDecayingConnectivityParameter})(; amplitude, spread) = t(amplitude, spread)
 validate(a::AbstractExpDecayingConnectivityParameter, space) = (@show a.spread; @show step(space); @assert all(a.spread .> step(space)))
-struct ExpSumAbsDecayingConnectivityParameter{T,N_CDT} <: AbstractExpDecayingConnectivityParameter{T,N_CDT}
+struct ExpAbsSumDecayingConnectivityParameter{T,N_CDT} <: AbstractExpDecayingConnectivityParameter{T,N_CDT}
     amplitude::T
     spread::NTuple{N_CDT,T}
 end
@@ -83,9 +83,9 @@ function apply_connectivity(connectivity::CONN, diffs::DIFFS, step_size::NTuple{
     #return connectivity.amplitude .* (unscaled ./ sum_scaling)
 end
 
-function apply_connectivity_unscaled(conn::ExpSumAbsDecayingConnectivityParameter{T,N_CDT}, coord_differences::Tup) where {T,N_CDT,Tup<:NTuple{N_CDT,T}}
+function apply_connectivity_unscaled(conn::ExpAbsSumDecayingConnectivityParameter{T,N_CDT}, coord_differences::Tup) where {T,N_CDT,Tup<:NTuple{N_CDT,T}}
     exp(
-        -sum(abs.(coord_differences ./ conn.spread))
+        -abs.(sum(coord_differences ./ conn.spread)) # FIXME: Is summing after dividing by spreads right? I think so!
     )
 end
 
