@@ -69,7 +69,7 @@ function directed_weights(connectivity::AbstractConnectivityParameter{T,N_CDT}, 
     return apply_connectivity(connectivity, diffs, step_size, center_diffs)
 end
 
-function apply_connectivity(connectivity::CONN, diffs::DIFFS, step_size::NTuple{N_CDT,T}, center_diffs::DIFFS) where {T,N_ARR,N_CDT,CDT<:NTuple{N_CDT,T},DIFFS<:AbstractArray{CDT,N_ARR},CONN<:ExpSumAbsDecayingConnectivityParameter{T,N_CDT}}
+function apply_connectivity(connectivity::CONN, diffs::DIFFS, step_size::NTuple{N_CDT,T}, center_diffs::DIFFS) where {T,N_ARR,N_CDT,CDT<:NTuple{N_CDT,T},DIFFS<:AbstractArray{CDT,N_ARR},CONN<:ExpAbsSumDecayingConnectivityParameter{T,N_CDT}}
     unscaled = apply_connectivity_unscaled.(Ref(connectivity), diffs)
     # TODO validate use of prod
     return connectivity.amplitude .* unscaled ./ (2 * prod(connectivity.spread)) # note that stepsize is used in calling function
