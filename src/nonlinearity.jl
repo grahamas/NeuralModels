@@ -85,12 +85,31 @@ GaussianNonlinearity(; sd, θ) where T = GaussianNonlinearity(sd,θ)
 
 ##############
 
+function nonnegative_everywhere(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T
+    max_θ = max(fsig.θ, bsig.θ)
+    min_a = min(fsig.a, fsig.a)
+    max_test_val = max_θ + (10.0 / min_a)
+    test_step = min_a / 10.0
+    test_vals = 0.0:test_step:max_test_val |> collect
+    dos_fn(fsig, bsig, test_vals)
+    all(test_vals .>= 0)
+end
+
 ### Difference of Sigmoids
 struct DifferenceOfSigmoids{T} <: AbstractNonlinearity{T}
     firing_sigmoid::SigmoidNonlinearity{T}
     blocking_sigmoid::SigmoidNonlinearity{T}
-    DifferenceOfSigmoids(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T = new{T}(fsig,bsig)
+    DifferenceOfSigmoids(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T = begin
+        if !nonnegative_everywhere(fsig, bsig)
+            throw(DomainError((fsig, bsig), "difference of sigmoids must be positive"))
+        new{T}(fsig,bsig)
+    end
 end
 DifferenceOfSigmoids(; firing_a, firing_θ, blocking_a, blocking_θ) where T = DifferenceOfSigmoids(SigmoidNonlinearity(; θ=firing_θ,a=firing_a), SigmoidNonlinearity(; θ=blocking_θ,a=blocking_a))
-(dos::DifferenceOfSigmoids)(output::AbstractArray, ignored_source, ignored_t) = output .= rectified_sigmoid_fn.(output, dos.firing_sigmoid.a, dos.firing_sigmoid.θ) - rectified_sigmoid_fn.(output, dos.blocking_sigmoid.a, dos.blocking_sigmoid.θ)
+function dos_fn(up_sig::SigmoidNonlinearity, down_sig::SigmoidNonlinearity, output::AbstractArray)
+    output .= rectified_unzeroed_sigmoid_fn.(output, up_sig.a, up_sig.θ) - rectified_unzeroed_sigmoid_fn.(output, down_sig.a, down_sig.θ)
+end
     
+function (dos::DifferenceOfSigmoids)(output::AbstractArray, ignored_source, ignored_t)
+    dos_fn(dos.firing_sigmoid, dos.blocking_sigmoid, output)
+end
