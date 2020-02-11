@@ -101,7 +101,9 @@ struct DifferenceOfSigmoids{T} <: AbstractNonlinearity{T}
     blocking_sigmoid::SigmoidNonlinearity{T}
     DifferenceOfSigmoids(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T = begin
         if !nonnegative_everywhere(fsig, bsig)
-            throw(DomainError((fsig, bsig), "difference of sigmoids must be positive"))
+            @warn "difference of sigmoids must be positive"
+            return missing
+        end
         new{T}(fsig,bsig)
     end
 end
