@@ -103,7 +103,7 @@ end
 
 function DifferenceOfSigmoids(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T
     if !nonnegative_everywhere(fsig, bsig)
-        @warn "difference of sigmoids must be positive"
+        #@warn "difference of sigmoids must be positive"
         return missing
     end
     DifferenceOfSigmoids{T}(fsig,bsig)
