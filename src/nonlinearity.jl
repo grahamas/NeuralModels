@@ -99,15 +99,15 @@ end
 struct DifferenceOfSigmoids{T} <: AbstractNonlinearity{T}
     firing_sigmoid::SigmoidNonlinearity{T}
     blocking_sigmoid::SigmoidNonlinearity{T}
+    function DifferenceOfSigmoids(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T
+        if !nonnegative_everywhere(fsig, bsig)
+            #@warn "difference of sigmoids must be positive"
+            return missing
+        end
+        new{T}(fsig,bsig)
+    end
 end
 
-function DifferenceOfSigmoids(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T
-    if !nonnegative_everywhere(fsig, bsig)
-        #@warn "difference of sigmoids must be positive"
-        return missing
-    end
-    DifferenceOfSigmoids{T}(fsig,bsig)
-end
 DifferenceOfSigmoids(; firing_a, firing_θ, blocking_a, blocking_θ) where T = DifferenceOfSigmoids(SigmoidNonlinearity(; θ=firing_θ,a=firing_a), SigmoidNonlinearity(; θ=blocking_θ,a=blocking_a))
 function dos_fn(up_sig::SigmoidNonlinearity, down_sig::SigmoidNonlinearity, output::AbstractArray)
     output .= rectified_unzeroed_sigmoid_fn.(output, up_sig.a, up_sig.θ) - rectified_unzeroed_sigmoid_fn.(output, down_sig.a, down_sig.θ)
