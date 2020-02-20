@@ -44,7 +44,7 @@ ZeroedSigmoidNonlinearity(; a, θ) = ZeroedSigmoidNonlinearity(a,θ)
 function rectified_unzeroed_sigmoid_fn(x, a, theta)
     max(0, simple_sigmoid_fn(x, a, theta))
 end
-near_zero_start(a,θ) = 0.0 <= rectified_unzeroed_sigmoid_fn(0.0,a,θ) < 0.001
+near_zero_start(a,θ) = 0.0 <= rectified_unzeroed_sigmoid_fn(0.0,a,θ) < 0.05
 struct SigmoidNonlinearity{T} <: AbstractNonlinearity{T}
     a::T
     θ::T
@@ -107,7 +107,6 @@ struct DifferenceOfSigmoids{T} <: AbstractNonlinearity{T}
     blocking_sigmoid::SigmoidNonlinearity{T}
     function DifferenceOfSigmoids(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T
         if !nonnegative_everywhere(fsig, bsig)
-            #@warn "difference of sigmoids must be positive"
             return missing
         end
         new{T}(fsig,bsig)
