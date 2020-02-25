@@ -28,8 +28,7 @@ export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
 
 export make_mutator
 
-export GaussianNoiseStimulusParameter, GaussianNoiseStimulusAction,
-    AbstractTransientBumpStimulusParameter, TransientBumpStimulusAction,
+export AbstractTransientBumpStimulusParameter, TransientBumpStimulusAction,
     SharpBumpStimulusParameter
 
 include("helpers.jl")

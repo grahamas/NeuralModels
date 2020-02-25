@@ -1,36 +1,4 @@
 
-
-
-
-### Gaussian Noise ###
-struct GaussianNoiseStimulusParameter{T} <: AbstractStimulusParameter{T}
-    mean::T
-    sd::T
-end
-struct GaussianNoiseStimulusAction{T,N} <: AbstractStimulusAction{T,N}
-    mean::T
-    sd::T
-end
-function GaussianNoiseStimulusParameter(; sd::Union{T,Nothing}=nothing, SNR::Union{T,Nothing}=nothing, mean::T=0.0) where {T}
-    @assert xor(sd == nothing, SNR == nothing)
-    if sd == nothing
-        sd = sqrt(1/10 ^ (SNR / 10))
-    end
-    GaussianNoiseStimulusParameter(mean, sd)
-end
-function gaussian_noise!(val::AT, mean::T, sd::T) where {T, AT<:AbstractArray{T}} # assumes signal power is 0db
-    val .+= randn(size(val))
-    val .*= sd
-    val .+= mean
-end
-function (wns::GaussianNoiseStimulusParameter{T})(space::AbstractSpace{T,N}) where {T,N}
-    GaussianNoiseStimulusAction{T,N}(wns.mean, wns.sd) # Not actually time dependent
-end
-function (wns::GaussianNoiseStimulusAction{T,N})(val::AbstractArray{T,N}, ignored_val, ignored_t) where {T,N}
-    gaussian_noise!(val, wns.mean, wns.sd) # Not actually time dependent
-end
-##########################
-
 ### Transient bumps ###
 # Subtypes of TransientBumpStimulusParameter generate TransientBumpStimulusActions (NOT subtypes)
 abstract type AbstractTransientBumpStimulusParameter{T} <: AbstractStimulusParameter{T} end
