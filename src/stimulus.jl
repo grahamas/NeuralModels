@@ -31,6 +31,8 @@ struct SharpBumpStimulusParameter{T} <: AbstractTransientBumpStimulusParameter{T
     center::Union{NTuple,Nothing}
     baseline::T
 end
+center(sbs::SharpBumpStimulusParameter) = sbs.center
+export center
 
 function SharpBumpStimulusParameter(; strength, width,
         duration=nothing, time_windows=nothing, center=nothing, baseline=0.0)

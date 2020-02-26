@@ -59,12 +59,13 @@ function unit_scale(arr::AbstractArray)
     arr ./ sum(arr)
 end
 
+fft_center_idx(arr) = CartesianIndex(round.(Int, size(lattice) ./ 2, RoundNearestTiesUp))
 
 # Generic functions to unpack Lattice for application of connectivity
 function directed_weights(connectivity::AbstractConnectivityParameter{T,N_CDT}, locations::AbstractLattice{T,N_ARR,N_CDT},
                           source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT}
     diffs = differences(locations, source_location)
-    center_diffs = differences(locations, coordinates(locations)[origin_idx(locations)])
+    center_diffs = differences(locations, coordinates(locations)[fft_center_idx(locations)])
     step_size = step(locations)
     return apply_connectivity(connectivity, diffs, step_size, center_diffs)
 end
