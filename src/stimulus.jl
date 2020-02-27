@@ -49,8 +49,8 @@ function on_frame(sbs::SharpBumpStimulusParameter{T}, space::AbstractSpace{T,N_A
     coords = coordinates(space)
     frame = zero(space) .+ sbs.baseline
     half_width = sbs.width / 2.0
-    center_val = sbs.center == nothing ? coords[origin_idx(space)] : sbs.center
-    distances = distance.(coords, Ref(center_val))
+    center_coordinates = sbs.center == nothing ? Tuple(zeros(T,N_CDT)) : sbs.center
+    distances = distance.(coords, Ref(center_coordinates))
     on_center = (distances .< half_width) .| (distances .≈ half_width)
     frame[on_center] .= sbs.strength
     return frame

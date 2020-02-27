@@ -59,8 +59,6 @@ function unit_scale(arr::AbstractArray)
     arr ./ sum(arr)
 end
 
-fft_center_idx(arr) = CartesianIndex(round.(Int, size(lattice) ./ 2, RoundNearestTiesUp))
-
 # Generic functions to unpack Lattice for application of connectivity
 function directed_weights(connectivity::AbstractConnectivityParameter{T,N_CDT}, locations::AbstractLattice{T,N_ARR,N_CDT},
                           source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT}
@@ -98,6 +96,6 @@ end
 
 function kernel(conn::AbstractConnectivityParameter{T,N_CDT}, lattice::AbstractSpace{T,N_CDT}) where {T,N_CDT}
     # Kernel has ZERO DIST at its center (or floor(extent/2) + 1)
-    fft_centered_differences = differences(lattice, coordinates(lattice)[fft_center_dx(lattice)])
+    fft_centered_differences = differences(lattice, coordinates(lattice)[fft_center_idx(lattice)])
     apply_connectivity(conn, fft_centered_differences, step(lattice), fft_centered_differences)    
 end
