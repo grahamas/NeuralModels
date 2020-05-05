@@ -23,7 +23,7 @@ using Simulation73
 using NeuralModels
 using DSP
 using SpecialFunctions
-using Plots
+#using Plots
 
 function make_testing_lattice(; 
         n_points::NTuple{N,Int}=(1001,), extent::NTuple{N,T}=(300.0,), 

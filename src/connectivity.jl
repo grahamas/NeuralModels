@@ -29,7 +29,7 @@ struct FFTAction{T,N_CDT,KERN<:AbstractArray{Complex{T},N_CDT},OP,IOP} <: Abstra
 end
 # TODO: Assumes populations
 function (fftp::FFTParameter)(space::AbstractSpace)
-    kern = kernel(fftp.connectivity, space)
+    kern = kernel(fftp, space)
     kern_dx = kern .* prod(step(space)) # MULTIPLY BY VOLUME ELEMENT
     kernel_fftd = rfft(kern_dx)
     multi_pop_space = population_repeat(zeros(space),2)
@@ -60,9 +60,11 @@ function unit_scale(arr::AbstractArray)
 end
 
 # Generic functions to unpack Lattice for application of connectivity
-function directed_weights(connectivity::AbstractConnectivityParameter{T,N_CDT}, locations::AbstractLattice{T,N_ARR,N_CDT},
-                          source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT}
+function directed_weights(connectivity::AbstractConnectivityParameter{T,N_CDT},
+        locations::AbstractLattice{T,N_ARR,N_CDT},
+        source_location::NTuple{N_CDT,T}) where {T,N_ARR,N_CDT}
     diffs = differences(locations, source_location)
+    # choice of fft_center_idx is irrelevant; just needs to be constant across all source_locations
     center_diffs = differences(locations, coordinates(locations)[fft_center_idx(locations)])
     step_size = step(locations)
     return apply_connectivity(connectivity, diffs, step_size, center_diffs)
@@ -93,9 +95,8 @@ function apply_connectivity_unscaled(conn::GaussianConnectivityParameter{T,N_CDT
         -sum( (coord_differences ./ conn.spread) .^ 2) / 2
     )
 end
-
-function kernel(conn::AbstractConnectivityParameter{T,N_CDT}, lattice::AbstractSpace{T,N_CDT}) where {T,N_CDT}
+function kernel(conn::FFTParameter{T,N_CDT}, lattice::AbstractSpace{T,N_CDT}) where {T,N_CDT}
     # Kernel has ZERO DIST at its center (or floor(extent/2) + 1)
     fft_centered_differences = differences(lattice, coordinates(lattice)[fft_center_idx(lattice)])
-    apply_connectivity(conn, fft_centered_differences, step(lattice), fft_centered_differences)    
+    apply_connectivity(conn.connectivity, fft_centered_differences, step(lattice), fft_centered_differences)    
 end
