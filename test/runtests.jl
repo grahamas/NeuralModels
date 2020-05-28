@@ -9,6 +9,8 @@ using DSP
 using SpecialFunctions
 using Plots; unicodeplots()
 
+include("src/test_sanity.jl")
+
 function make_testing_lattice(; n_points=1001, extent=300.0, type=CompactLattice{Float64,1})
     dx = extent / n_points
     mid_point = floor(Int, n_points / 2) + (n_points % 2)

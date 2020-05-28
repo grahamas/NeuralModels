@@ -86,7 +86,7 @@ struct GaussianNonlinearity{T} <: AbstractNonlinearity{T}
     θ::T
     GaussianNonlinearity(sd::T,θ::T) where T = new{T}(sd,θ)
 end
-GaussianNonlinearity(; sd, θ) where T = GaussianNonlinearity(sd,θ)
+GaussianNonlinearity(; sd, θ) = GaussianNonlinearity(sd,θ)
 (gaussian::GaussianNonlinearity)(output::AbstractArray, ignored_source, ignored_t) = output .= gaussian_fn.(output,gaussian.sd,gaussian.θ)
 
 ##############
@@ -116,7 +116,7 @@ DifferenceOfSigmoids(::Any, ::Missing) = missing
 DifferenceOfSigmoids(::Missing, ::Any) = missing
 DifferenceOfSigmoids(::Missing, ::Missing) = missing
 
-DifferenceOfSigmoids(; firing_a, firing_θ, blocking_a, blocking_θ) where T = DifferenceOfSigmoids(SigmoidNonlinearity(; θ=firing_θ,a=firing_a), SigmoidNonlinearity(; θ=blocking_θ,a=blocking_a))
+DifferenceOfSigmoids(; firing_a, firing_θ, blocking_a, blocking_θ) = DifferenceOfSigmoids(SigmoidNonlinearity(; θ=firing_θ,a=firing_a), SigmoidNonlinearity(; θ=blocking_θ,a=blocking_a))
 function dos_fn(up_sig::SigmoidNonlinearity, down_sig::SigmoidNonlinearity, output::AbstractArray)
     output .= rectified_unzeroed_sigmoid_fn.(output, up_sig.a, up_sig.θ) .- rectified_unzeroed_sigmoid_fn.(output, down_sig.a, down_sig.θ)
 end
