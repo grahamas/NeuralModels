@@ -14,7 +14,7 @@ function (bump_param::AbstractTransientBumpStimulusParameter{T})(space::Abstract
     bump_frame = on_frame(bump_param, space)
     TransientBumpStimulusAction(bump_param.baseline, bump_frame, bump_param.time_windows)
 end
-function (bump::TransientBumpStimulusAction{T,N})(val::AbstractArray{T,N}, ignored, t::T) where {T,N}
+function (bump::TransientBumpStimulusAction{T,N})(val::AbstractArray, ignored, t) where {T,N}
     for window in bump.time_windows
         if window[1] <= t < window[2]
             val .+= bump.bump_frame
