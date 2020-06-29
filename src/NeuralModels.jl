@@ -29,7 +29,7 @@ export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
 export make_mutator
 
 export AbstractTransientBumpStimulusParameter, TransientBumpStimulusAction,
-    SharpBumpStimulusParameter
+    CircleStimulusParameter, RectangleStimulusParameter
 
 include("helpers.jl")
 include("neural_data.jl")

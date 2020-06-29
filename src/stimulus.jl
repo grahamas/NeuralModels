@@ -24,36 +24,64 @@ function (bump::TransientBumpStimulusAction{T,N})(val::AbstractArray, ignored, t
     end
 end
 
-struct SharpBumpStimulusParameter{T} <: AbstractTransientBumpStimulusParameter{T}
-    width::T
+
+struct CircleStimulusParameter{T} <: AbstractTransientBumpStimulusParameter{T}
+    radius::T
     strength::T
     time_windows::Array{Tuple{T,T},1}
     center::Union{NTuple,Nothing}
     baseline::T
 end
-center(sbs::SharpBumpStimulusParameter) = sbs.center
+center(sbs::CircleStimulusParameter) = sbs.center
 export center
 
-function SharpBumpStimulusParameter(; strength, width,
+function CircleStimulusParameter(; strength, radius,
         duration=nothing, time_windows=nothing, center=nothing, baseline=0.0)
     if time_windows == nothing
-        return SharpBumpStimulusParameter(width, strength, [(zero(typeof(strength)), duration)], center, baseline)
+        return CircleStimulusParameter(radius, strength, [(zero(typeof(strength)), duration)], center, baseline)
     else
         @assert duration == nothing
-        return SharpBumpStimulusParameter(width, strength, time_windows, center, baseline)
+        return CircleStimulusParameter(radius, strength, time_windows, center, baseline)
     end
 end
-
 distance(x1::NTuple{N},x2::NTuple{N}) where N = sqrt(sum((x1 .- x2) .^ 2))
-function on_frame(sbs::SharpBumpStimulusParameter{T}, space::AbstractSpace{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT}
+function on_frame(sbs::CircleStimulusParameter{T}, space::AbstractSpace{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT}
     coords = coordinates(space)
     frame = zero(space) .+ sbs.baseline
-    half_width = sbs.width / 2.0
     center_coordinates = sbs.center == nothing ? Tuple(zeros(T,N_CDT)) : sbs.center
     distances = distance.(coords, Ref(center_coordinates))
-    on_center = (distances .< half_width) .| (distances .≈ half_width)
+    on_center = (distances .< sbs.radius) .| (distances .≈ sbs.radius)
     frame[on_center] .= sbs.strength
     return frame
 end
 
+struct RectangleStimulusParameter{T,N} <: AbstractTransientBumpStimulusParameter{T}
+    widths::NTuple{N,T}
+    strength::T
+    time_windows::Array{Tuple{T,T},1}
+    center::NTuple{N,T}
+    baseline::T
+end
+center(sbs::RectangleStimulusParameter) = sbs.center
+
+function RectangleStimulusParameter(; strength, widths,
+                                    duration=nothing, time_windows=nothing, center=zero.(widths), baseline=0.0)
+    if time_windows == nothing
+        return RectangleStimulusParameter(widths, strength, [(zero(typeof(strength)), duration)], center, baseline)
+    else
+        @assert duration == nothing
+        return RectangleStimulusParameter(widths, strength, time_windows, center, baseline)
+    end
+end
+function on_frame(sbs::RectangleStimulusParameter{T,N_CDT}, space::AbstractSpace{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT}
+    coords = coordinates(space)
+    frame = zero(space) .+ sbs.baseline
+    center_coordinates = sbs.center == nothing ? Tuple(zeros(T,N_CDT)) : sbs.center
+    on_center = map(coords) do coord
+        diffs = abs.(coord .- sbs.center)
+        all((diffs .< sbs.widths) .| (diffs .≈ sbs.widths))
+    end
+    frame[on_center] .= sbs.strength
+    return frame
+end
 ################################

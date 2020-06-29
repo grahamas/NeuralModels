@@ -16,7 +16,7 @@ function (a::NaiveConnectivityAction)(output, input, ignored_t)
         output[i_coord] += sum(weights .* input)
     end
 end
-        
+
 struct FFTParameter{T,N_CDT,C<:AbstractConnectivityParameter{T,N_CDT}} <: AbstractConnectivityParameter{T,N_CDT}
     connectivity::C
     FFTParameter(c::C) where {T,N_CDT,C<:AbstractConnectivityParameter{T,N_CDT}} = new{T,N_CDT,C}(c)
