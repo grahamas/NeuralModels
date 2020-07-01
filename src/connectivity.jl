@@ -23,9 +23,12 @@ struct FFTParameter{T,N_CDT,C<:AbstractConnectivityParameter{T,N_CDT}} <: Abstra
 end
 struct FFTAction{T,N_CDT,KERN<:AbstractArray{Complex{T},N_CDT},OP,IOP} <: AbstractConnectivityAction{T,N_CDT}
     kernel::KERN
+    buffer_complex::KERN
+    buffer_real::Array{T,1}
+    buffer_shift::Array{T,1}
     fft_op::OP
     ifft_op::IOP
-    FFTAction(kernel::KERN, fft_op::OP, ifft_op::IOP) where {T,N,KERN<:AbstractArray{Complex{T},N},OP,IOP} = new{T,N,KERN,OP,IOP}(kernel, fft_op, ifft_op)
+    FFTAction(kernel::KERN, buff::KERN, buff_real::Array{T,1}, fft_op::OP, ifft_op::IOP) where {T,N,KERN<:AbstractArray{Complex{T},N},OP,IOP} = new{T,N,KERN,OP,IOP}(kernel, buff, buff_real, similar(buff_real), fft_op, ifft_op)
 end
 # TODO: Assumes populations
 function (fftp::FFTParameter)(space::AbstractSpace)
@@ -36,12 +39,32 @@ function (fftp::FFTParameter)(space::AbstractSpace)
     single_pop_zeros = population(multi_pop_space, 1)
     fft_op = plan_rfft(single_pop_zeros; flags=(FFTW.PATIENT | FFTW.UNALIGNED))
     ifft_op = plan_irfft(fft_op * single_pop_zeros, size(space,1); flags=(FFTW.PATIENT | FFTW.UNALIGNED))
-    FFTAction(kernel_fftd, fft_op, ifft_op)
-end
-function (a::FFTAction)(output::AbstractArray, input::AbstractArray, ignored_t)
-    output .+= fftshift(real(a.ifft_op * ((a.fft_op * input) .* a.kernel)))
+    FFTAction(kernel_fftd, similar(kernel_fftd), similar(kern), fft_op, ifft_op)
 end
 
+function fftshift!(output::AbstractVector, input::AbstractVector)
+    circshift!(output, input, (floor(Int, length(output) / 2)))
+end
+
+#function (a::FFTAction)(output::AbstractArray, input::AbstractArray, ignored_t)
+#        output .+= fftshift(real(a.ifft_op * ((a.fft_op * input) .* a.kernel)))
+#end
+function (a::FFTAction)(output::AbstractArray, input::StridedArray, ignored_t)
+    @show "not axisindices"
+    mul!(a.buffer_complex, a.fft_op, input)
+    a.buffer_complex .*= a.kernel
+    mul!(a.buffer_real, a.ifft_op, a.buffer_complex)
+    fftshift!(a.buffer_shift, a.buffer_real)
+    output .+= a.buffer_shift
+end
+using AxisIndices
+function (a::FFTAction)(output::AbstractArray, input::AbstractAxisArray, ignored_t)
+    mul!(a.buffer_complex, a.fft_op, input.parent)
+    a.buffer_complex .*= a.kernel
+    mul!(a.buffer_real, a.ifft_op, a.buffer_complex)
+    fftshift!(a.buffer_shift, a.buffer_real)
+    output .+= a.buffer_shift
+end
 abstract type AbstractExpDecayingConnectivityParameter{T,N_CDT} <: AbstractConnectivityParameter{T,N_CDT} end
 (t::Type{<:AbstractExpDecayingConnectivityParameter})(; amplitude, spread) = t(amplitude, spread)
 validate(a::AbstractExpDecayingConnectivityParameter, space) = (@show a.spread; @show step(space); @assert all(a.spread .> step(space)))
