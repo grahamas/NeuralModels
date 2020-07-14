@@ -20,8 +20,9 @@ export GaussianConnectivityParameter, ExpAbsSumDecayingConnectivityParameter, di
 
 # Exporting Nonlinearities
 export AbstractNonlinearity,
-    SigmoidNonlinearity, UnzeroedSigmoidNonlinearity, 
-GaussianNonlinearity, Sech2Nonlinearity,
+    SigmoidNonlinearity,
+    ZeroedSigmoidNonlinearity,
+    GaussianNonlinearity, Sech2Nonlinearity,
     DifferenceOfSigmoids
 
 export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
