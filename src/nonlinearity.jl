@@ -58,6 +58,12 @@ end
 SigmoidNonlinearity(; a, θ) = SigmoidNonlinearity(a,θ)
 (s::SigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= rectified_unzeroed_sigmoid_fn.(inplace, s.a, s.θ)
 
+struct UnrectifiedSigmoidNonlinearity{T} <: AbstractNonlinearity{T}
+    a::T
+    θ::T
+end
+UnrectifiedSigmoidNonlinearity(; a, θ) = UnrectifiedSigmoidNonlinearity(a,θ)
+(s::UnrectifiedSigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= simple_sigmoid_fn.(inplace, s.a, s.θ)
 
 ############
 
