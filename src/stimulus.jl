@@ -1,4 +1,6 @@
 
+# Include initial values since they'll have similar properties to stimuli, save time.
+
 ### Transient bumps ###
 # Subtypes of TransientBumpStimulusParameter generate TransientBumpStimulusActions (NOT subtypes)
 abstract type AbstractTransientBumpStimulusParameter{T} <: AbstractStimulusParameter{T} end
