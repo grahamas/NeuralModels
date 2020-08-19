@@ -20,9 +20,9 @@ export GaussianConnectivityParameter, ExpAbsSumDecayingConnectivityParameter, di
 
 # Exporting Nonlinearities
 export AbstractNonlinearity,
-    SigmoidNonlinearity,
-    ZeroedSigmoidNonlinearity,
-    UnrectifiedSigmoidNonlinearity,
+    SimpleSigmoidNonlinearity,
+    RectifiedZeroedSigmoidNonlinearity,
+    RectifiedSigmoidNonlinearity,
     GaussianNonlinearity, Sech2Nonlinearity,
     DifferenceOfSigmoids
 

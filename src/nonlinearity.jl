@@ -1,4 +1,5 @@
 abstract type AbstractNonlinearity{T} <: AbstractAction{T} end
+abstract type AbstractSigmoidNonlinearity{T} <: AbstractNonlinearity{T} end
 
 ### Sigmoid ###
 scalar_exp!(A) = A .= exp.(A)
@@ -33,37 +34,37 @@ TODO: Rename to rectified_sigmoid_fn.
 function rectified_zeroed_sigmoid_fn(x, a, theta)
     max(0, zeroed_sigmoid_fn(x, a, theta))
 end
-struct ZeroedSigmoidNonlinearity{T} <: AbstractNonlinearity{T}
+struct RectifiedZeroedSigmoidNonlinearity{T} <: AbstractSigmoidNonlinearity{T} # rectified, zeroed
     a::T
     θ::T
-    ZeroedSigmoidNonlinearity(a::T,θ::T) where T = new{T}(a,θ)
+    RectifiedZeroedSigmoidNonlinearity(a::T,θ::T) where T = new{T}(a,θ)
 end
-ZeroedSigmoidNonlinearity(; a, θ) = ZeroedSigmoidNonlinearity(a,θ)
-(s::ZeroedSigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= rectified_zeroed_sigmoid_fn.(inplace, s.a, s.θ)
+RectifiedZeroedSigmoidNonlinearity(; a, θ) = RectifiedZeroedSigmoidNonlinearity(a,θ)
+(s::RectifiedZeroedSigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= rectified_zeroed_sigmoid_fn.(inplace, s.a, s.θ)
 
 function rectified_unzeroed_sigmoid_fn(x, a, theta)
     max(0, simple_sigmoid_fn(x, a, theta))
 end
 near_zero_start(a,θ) = 0.0 <= rectified_unzeroed_sigmoid_fn(0.0,a,θ) < 0.05
-struct SigmoidNonlinearity{T} <: AbstractNonlinearity{T}
+struct RectifiedSigmoidNonlinearity{T} <: AbstractSigmoidNonlinearity{T} #rectified, unzeroed
     a::T
     θ::T
-    function SigmoidNonlinearity(a::T,θ::T) where T
+    function RectifiedSigmoidNonlinearity(a::T,θ::T) where T
         if !near_zero_start(a, θ)
             return missing
         end
         new{T}(a,θ)
     end
 end
-SigmoidNonlinearity(; a, θ) = SigmoidNonlinearity(a,θ)
-(s::SigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= rectified_unzeroed_sigmoid_fn.(inplace, s.a, s.θ)
+RectifiedSigmoidNonlinearity(; a, θ) = RectifiedSigmoidNonlinearity(a,θ)
+(s::RectifiedSigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= rectified_unzeroed_sigmoid_fn.(inplace, s.a, s.θ)
 
-struct UnrectifiedSigmoidNonlinearity{T} <: AbstractNonlinearity{T}
+struct SimpleSigmoidNonlinearity{T} <: AbstractSigmoidNonlinearity{T} #unrectified, unzeroed
     a::T
     θ::T
 end
-UnrectifiedSigmoidNonlinearity(; a, θ) = UnrectifiedSigmoidNonlinearity(a,θ)
-(s::UnrectifiedSigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= simple_sigmoid_fn.(inplace, s.a, s.θ)
+SimpleSigmoidNonlinearity(; a, θ) = SimpleSigmoidNonlinearity(a,θ)
+(s::SimpleSigmoidNonlinearity)(inplace::AbstractArray, ignored_source, ignored_t) = inplace .= simple_sigmoid_fn.(inplace, s.a, s.θ)
 
 ############
 
@@ -97,36 +98,45 @@ GaussianNonlinearity(; sd, θ) = GaussianNonlinearity(sd,θ)
 
 ##############
 
-function nonnegative_everywhere(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T
+function dos_fn!(output::AbstractArray, firing_sigmoid, blocking_sigmoid, ignored_source=nothing, ignored_t=nothing)
+    blocked = copy(output) # FIXME should preallocate in struct
+    blocking_sigmoid(blocked, ignored_source, ignored_t)
+    firing_sigmoid(output, ignored_source, ignored_t)
+    output .-= blocked
+end
+
+function nonnegative_everywhere(fsig::AbstractSigmoidNonlinearity{T},bsig::AbstractSigmoidNonlinearity{T}) where T
     max_θ = max(fsig.θ, bsig.θ)
     min_a = min(fsig.a, fsig.a)
     max_test_val = max_θ + (10.0 / min_a)
     test_step = min_a / 10.0
     test_vals = 0.0:test_step:max_test_val |> collect
-    dos_fn(fsig, bsig, test_vals)
+    dos_fn!(test_vals, fsig, bsig)
     all(test_vals .>= 0)
 end
 
 ### Difference of Sigmoids
-struct DifferenceOfSigmoids{T} <: AbstractNonlinearity{T}
-    firing_sigmoid::SigmoidNonlinearity{T}
-    blocking_sigmoid::SigmoidNonlinearity{T}
-    function DifferenceOfSigmoids(fsig::SigmoidNonlinearity{T},bsig::SigmoidNonlinearity{T}) where T
+struct DifferenceOfSigmoids{T,S<:AbstractSigmoidNonlinearity{T}} <: AbstractNonlinearity{T}
+    firing_sigmoid::S
+    blocking_sigmoid::S
+    function DifferenceOfSigmoids(fsig::S,
+                                   bsig::S) where {T, S<:Union{RectifiedSigmoidNonlinearity{T},RectifiedZeroedSigmoidNonlinearity{T}}}
+        # enforce that rectified sigmoids are still rectified
         if !nonnegative_everywhere(fsig, bsig)
             return missing
         end
-        new{T}(fsig,bsig)
+        new{T,S}(fsig,bsig)
     end
+    DifferenceOfSigmoids(fsig::S,bsig::S) where {T, S<:AbstractSigmoidNonlinearity{T}} = new{T,S}(fsig, bsig)
 end
 DifferenceOfSigmoids(::Any, ::Missing) = missing
 DifferenceOfSigmoids(::Missing, ::Any) = missing
 DifferenceOfSigmoids(::Missing, ::Missing) = missing
 
-DifferenceOfSigmoids(; firing_a, firing_θ, blocking_a, blocking_θ) = DifferenceOfSigmoids(SigmoidNonlinearity(; θ=firing_θ,a=firing_a), SigmoidNonlinearity(; θ=blocking_θ,a=blocking_a))
-function dos_fn(up_sig::SigmoidNonlinearity, down_sig::SigmoidNonlinearity, output::AbstractArray)
-    output .= rectified_unzeroed_sigmoid_fn.(output, up_sig.a, up_sig.θ) .- rectified_unzeroed_sigmoid_fn.(output, down_sig.a, down_sig.θ)
-end
-    
+DifferenceOfSigmoids(sigmoid_type=RectifiedSigmoidNonlinearity; firing_a, firing_θ, blocking_a, blocking_θ) = DifferenceOfSigmoids(sigmoid_type(; θ=firing_θ,a=firing_a), sigmoid_type(; θ=blocking_θ,a=blocking_a))
+
 function (dos::DifferenceOfSigmoids)(output::AbstractArray, ignored_source, ignored_t)
-    dos_fn(dos.firing_sigmoid, dos.blocking_sigmoid, output)
+    dos_fn!(output, dos.firing_sigmoid, dos.blocking_sigmoid, ignored_source, ignored_t)
 end
+
+
