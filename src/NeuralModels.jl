@@ -1,16 +1,11 @@
 module NeuralModels
 
 using Simulation73
-using Parameters
 using DifferentialEquations: DEDataArray
-using RecursiveArrayTools
-#using TensorOperations
-using MacroTools: splitdef, combinedef, splitarg
 using StaticArrays
 using FFTW
 using LinearAlgebra
-
-
+using Parameters
 
 export AbstractConnectivityParameter, AbstractConnectivityAction
 
