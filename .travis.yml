@@ -20,8 +20,7 @@ jobs:
     - travis_wait 30 julia --project=docs/ -e 'using Pkg; 
       deps=[PackageSpec(path=joinpath(pwd(), x)) for x in ["", "Simulation73", "AxisIndices.jl"]]; 
       Pkg.develop(deps);
-      Pkg.build();
-      include("docs/make.jl")'
+      Pkg.build()'
     after_success: skip
 notifications:
   email: false
