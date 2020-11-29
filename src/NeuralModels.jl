@@ -18,12 +18,16 @@ export GaussianConnectivityParameter, ExpAbsSumDecayingConnectivityParameter, di
     AbstractExpDecayingConnectivityParameter, FFTParameter, FFTAction
 
 # Exporting Nonlinearities
-export AbstractNonlinearity,
+export AbstractNonlinearityParameter,
+    AbstractNonlinearityAction,
     SimpleSigmoidNonlinearity,
     RectifiedZeroedSigmoidNonlinearity,
     RectifiedSigmoidNonlinearity,
     GaussianNonlinearity, Sech2Nonlinearity,
-    DifferenceOfSigmoids
+    DifferenceOfSigmoidsParameter,
+    DifferenceOfSigmoids,
+    NormedDifferenceOfSigmoidsParameter,
+    NormedDifferenceOfSigmoids
 
 export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
 

@@ -23,18 +23,18 @@ end
 @testset "Stimulus" begin
     @testset "Sharp Bump" begin
         n_points, extent, dx, mid_point, lattice, lattice_zeros = make_testing_lattice()
-        whole_lattice_stim_param = SharpBumpStimulusParameter(; center=(0.0,), strength=10.0, width=extent, time_windows=[(0.0,45.0)])
+        whole_lattice_stim_param = CircleStimulusParameter(; center=(0.0,), strength=10.0, radius=extent/2, time_windows=[(0.0,45.0)])
         whole_lattice_stim = whole_lattice_stim_param(lattice)
         whole_lattice_bump = copy(lattice_zeros)
         whole_lattice_stim(whole_lattice_bump, whole_lattice_bump, 0.0)
         @test all(whole_lattice_bump .== (lattice_zeros .+ 10.0))
 
-        manual_sharp_bump_width = 20.0
-        half_width = round(Int,manual_sharp_bump_width / dx / 2)
+        manual_sharp_bump_radius = 10.0
+        half_width = round(Int,manual_sharp_bump_radius / dx)
         manual_sharp_bump = copy(lattice_zeros)
         manual_sharp_bump[mid_point-half_width:mid_point+half_width] .= 1.0
 
-        sharp_bump_stim_param = SharpBumpStimulusParameter(; center=(0.0,), strength=1.0, width=manual_sharp_bump_width, time_windows=[(0.0,45.0)])
+        sharp_bump_stim_param = CircleStimulusParameter(; center=(0.0,), strength=1.0, radius=manual_sharp_bump_radius, time_windows=[(0.0,45.0)])
         sharp_bump_stim = sharp_bump_stim_param(lattice)
         sharp_bump_test = copy(lattice_zeros)
         sharp_bump_stim(sharp_bump_test, sharp_bump_test, 0.0)
@@ -44,13 +44,13 @@ end
     end
     @testset "Array" begin
         n_points, extent, dx, mid_point, lattice, lattice_zeros = make_testing_lattice(n_points=100, extent=100.0)
-        wide = SharpBumpStimulusParameter(;
+        wide = CircleStimulusParameter(;
                       strength = 1.0,
-                      width = 20.0,
+                      radius = 20.0,
                       time_windows = [(0.0, 20.0)])
-        thin = SharpBumpStimulusParameter(;
+        thin = CircleStimulusParameter(;
                       strength = 1.0,
-                      width = 10.0,
+                      radius = 10.0,
                       time_windows = [(0.0, 30.0)])
         wide_test = copy(lattice_zeros)
         thin_test = copy(lattice_zeros)
@@ -75,20 +75,24 @@ end
 end
 
 
-function fft_n_points_test(n_points, atol=0.01, rtol=0.1)
+function fft_n_points_test(n_points, atol=0.05, rtol=0.05)
     n_points, extent, dx, mid_point, circle, circle_zeros = make_testing_lattice(n_points=n_points, type=PeriodicLattice{Float64,1})
+    radius = extent/2
     manual_bump = copy(circle_zeros)
-    half_width = 30.0
-    half_width_dx = floor(Int, half_width / dx)
-    manual_bump[mid_point-half_width_dx:mid_point+half_width_dx] .= 1.0
+    stim_radius = 30.0
+    manual_bump_fn(x) = -stim_radius <= only(x) <= stim_radius ? 1.0 : 0.0
+    manual_bump = manual_bump_fn.(coordinates(circle))
     fft_gaussian_output, naive_gaussian_output, analytical_gaussian_output = nothing, nothing, nothing
     @testset "Exponentially decaying connectivity" begin
         σ = 20.0
         gaussian_conn_param = GaussianConnectivityParameter(amplitude=1.0, spread=(σ,))
         gaussian_dsp_output = conv(NeuralModels.kernel(gaussian_conn_param, circle), manual_bump)
-        abs_conn_param = ExpSumAbsDecayingConnectivityParameter(amplitude=1.0, spread=(σ,))
+        abs_conn_param = ExpAbsSumDecayingConnectivityParameter(amplitude=1.0, spread=(σ,))
         abs_dsp_output = conv(NeuralModels.kernel(abs_conn_param, circle), manual_bump)
-        @test all(directed_weights(gaussian_conn_param, circle, (0.0,)) .≈ directed_weights(gaussian_conn_param, circle, (extent,)))
+        @test directed_weights(gaussian_conn_param, circle, (-radius,)) ≈ directed_weights(gaussian_conn_param, circle, (radius,))
+        plt = plot(directed_weights(gaussian_conn_param, circle, (-radius,)))
+        plot!(plt, directed_weights(gaussian_conn_param, circle, (radius,)))
+        display(plt)
         @testset "FFT" begin
             gaussian_conn_action = gaussian_conn_param(circle)
             abs_conn_action = abs_conn_param(circle)
@@ -103,11 +107,18 @@ function fft_n_points_test(n_points, atol=0.01, rtol=0.1)
             fft_gaussian_conn_action(fft_gaussian_output, manual_bump, 0.0)
 
             # Assumes analytical form of Gaussian normalizes to 1
-            analytical_gaussian_conv(x) =  (erf((half_width-x[1])/σ) + erf((x[1]+half_width)/σ)) / (2)
+            # https://heasarc.gsfc.nasa.gov/xanadu/xspec/manual/node228.html ish
+            analytical_gaussian_conv(x) =  (erf(( stim_radius - x[1])/ (sqrt(2) * σ)) + erf((x[1]+stim_radius)/(sqrt(2) * σ))) / (2)
             analytical_gaussian_output = analytical_gaussian_conv.(coordinates(circle))
 
-            @test all(isapprox.(fft_gaussian_output,analytical_gaussian_output, atol=atol, rtol=rtol))
-            @test all(isapprox.(naive_gaussian_output,analytical_gaussian_output, atol=atol, rtol=rtol))
+            @test isapprox(fft_gaussian_output,analytical_gaussian_output, atol=atol, rtol=rtol)
+            plt = plot(fft_gaussian_output)
+            plot!(plt, analytical_gaussian_output)
+            display(plt)
+            @test isapprox(naive_gaussian_output,analytical_gaussian_output, atol = atol, rtol=rtol)
+            plt = plot(naive_gaussian_output)
+            plot!(plt, analytical_gaussian_output)
+            display(plt)
         end
         @testset "FFT pops" begin
             sigmas = [20.0 10.0; 30.0 40.0] .|> (x) -> (x,)
@@ -153,13 +164,14 @@ end
 end
 
 @testset "Nonlinearity" begin
+    n_points, extent, dx, mid_point, circle, circle_zeros = make_testing_lattice(n_points=100, type=PeriodicLattice{Float64,1})
     @testset "Sigmoid" begin
-        sn = SigmoidNonlinearity(a=1.0, θ=5.0)
-        test_vals = [-1.0, 0.0, 0.01, 5.0, 200.0]
+        sn = RectifiedSigmoidNonlinearity(a=1.0, θ=5.0)
+        test_vals = [-100.0, 0.0, 0.01, 5.0, 200.0]
         sn(test_vals)
-        @test test_vals[1] .== 0.0
-        @test test_vals[2] .== 0.0
-        @test isapprox(test_vals[3], 0.0, atol=0.0001)
+        @test isapprox(test_vals[1], 0.0, atol=sqrt(eps()))
+        @test isapprox(test_vals[2], 0.0, atol=0.01)
+        @test isapprox(test_vals[3], 0.0, atol=0.01)
         @test isapprox(test_vals[4], 0.5, atol=0.01)
         @test isapprox(test_vals[5], 1.0, atol=0.01)
     end
@@ -178,5 +190,40 @@ end
         @test isapprox(test_vals[1], 0.0, atol=0.001)
         @test isapprox(test_vals[2], 1.0, atol=0.001)
         @test isapprox(test_vals[3], 0.0, atol=0.001)
+    end
+    @testset "Difference of Sigmoids" begin
+        fθ = 7.0
+        bθ = 12.0
+        fsig = RectifiedSigmoidNonlinearity(a=5.0, θ=fθ)
+        bsig = RectifiedSigmoidNonlinearity(a=5.0, θ=bθ)
+        dosp = DifferenceOfSigmoidsParameter(fsig, bsig) 
+        test_vals = [-100.0, 0.0, 0.01, fθ, 200.0, (fθ + bθ) / 2, bθ]
+        dos! = DifferenceOfSigmoids(dosp, zero(test_vals))
+        dos!(test_vals)
+        @test isapprox(test_vals[1], 0.0, atol=sqrt(eps()))
+        @test isapprox(test_vals[2], 0.0, atol=0.01)
+        @test isapprox(test_vals[3], 0.0, atol=0.01)
+        @test isapprox(test_vals[4], 0.5, atol=0.01)
+        @test isapprox(test_vals[5], 0.0, atol=0.01) # returned to zero
+        @test isapprox(test_vals[6], 1.0, atol=0.01)
+        @test isapprox(test_vals[7], 0.5, atol=0.01)
+    end
+    @testset "Normed Difference of Sigmoids" begin
+        fθ = 7.0
+        bθ = 12.0
+        fsig = RectifiedSigmoidNonlinearity(a=5.0, θ=fθ)
+        bsig = RectifiedSigmoidNonlinearity(a=5.0, θ=bθ)
+        ndosp = NormedDifferenceOfSigmoidsParameter(fsig, bsig)
+        test_vals = [-100.0, 0.0, 0.01, fθ, 200.0, (fθ + bθ) / 2, bθ]
+        ndos! = NormedDifferenceOfSigmoids(DifferenceOfSigmoids(ndosp.dosp, zero(test_vals)), NeuralModels.calc_norm_factor(ndosp.dosp))
+        ndos!(test_vals)
+        # TODO better to have tested values written into tests
+        @test isapprox(test_vals[1], 0.0, atol=sqrt(eps()))
+        @test isapprox(test_vals[2], 0.0, atol=0.01)
+        @test isapprox(test_vals[3], 0.0, atol=0.01)
+        @test isapprox(test_vals[4], 0.5, atol=0.01)
+        @test isapprox(test_vals[5], 0.0, atol=0.01) # back to zero
+        @test isapprox(test_vals[6], 1.0, atol=0.01)
+        @test isapprox(test_vals[7], 0.5, atol=0.01)
     end
 end

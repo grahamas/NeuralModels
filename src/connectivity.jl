@@ -58,7 +58,7 @@ function (a::FFTAction)(output::AbstractArray, input::StridedArray, ignored_t)
     output .+= a.buffer_shift
 end
 using AxisIndices
-function (a::FFTAction)(output::AbstractArray, input::AbstractAxisArray, ignored_t)
+function (a::FFTAction)(output::AbstractArray, input::AxisArray, ignored_t)
     mul!(a.buffer_complex, a.fft_op, input.parent)
     a.buffer_complex .*= a.kernel
     mul!(a.buffer_real, a.ifft_op, a.buffer_complex)
@@ -78,7 +78,6 @@ struct GaussianConnectivityParameter{T,N_CDT} <: AbstractExpDecayingConnectivity
 end
 
 function unit_scale(arr::AbstractArray)
-    @show sum(arr)
     arr ./ sum(arr)
 end
 
@@ -122,4 +121,9 @@ function kernel(conn::FFTParameter{T,N_CDT}, lattice::AbstractSpace{T,N_CDT}) wh
     # Kernel has ZERO DIST at its center (or floor(extent/2) + 1)
     fft_centered_differences = differences(lattice, coordinates(lattice)[fft_center_idx(lattice)])
     apply_connectivity(conn.connectivity, fft_centered_differences, step(lattice), fft_centered_differences)    
+end
+
+function kernel(conn::AbstractConnectivityParameter{T,N_CDT}, lattice::AbstractSpace{T,N_CDT}) where {T,N_CDT}
+    coords = coordinates(lattice)
+    directed_weights(conn, lattice, coords[fft_center_idx(lattice)])
 end
