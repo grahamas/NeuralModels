@@ -59,7 +59,7 @@ function (a::FFTAction)(output::AbstractArray, input::StridedArray, ignored_t)
 end
 using AxisIndices
 function (a::FFTAction)(output::AbstractArray, input::AxisArray, ignored_t)
-    mul!(a.buffer_complex, a.fft_op, input.parent)
+    mul!(a.buffer_complex, a.fft_op, parent(input))
     a.buffer_complex .*= a.kernel
     mul!(a.buffer_real, a.ifft_op, a.buffer_complex)
     fftshift!(a.buffer_shift, a.buffer_real)
@@ -127,3 +127,7 @@ function kernel(conn::AbstractConnectivityParameter{T,N_CDT}, lattice::AbstractS
     coords = coordinates(lattice)
     directed_weights(conn, lattice, coords[fft_center_idx(lattice)])
 end
+
+amplitude(conn::AbstractConnectivityParameter) = conn.amplitude
+amplitude(conn::FFTParameter) = amplitude(conn.connectivity)
+export amplitude
