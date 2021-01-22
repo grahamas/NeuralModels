@@ -8,6 +8,8 @@ struct NonlinearityParameterWrapperAction{T,PARAM<:AbstractNonlinearityParameter
     p::PARAM
 end
 
+export get_firing_sigmoid, get_blocking_sigmoid
+
 (param::AbstractNonlinearityParameter)(space::AbstractSpace) = NonlinearityParameterWrapperAction(param)
 (wrapper::NonlinearityParameterWrapperAction)(arr1, arr2, t) = wrapper.p(arr1, arr2, t)
 ### Sigmoid ###
@@ -27,6 +29,10 @@ This is "simple" because in practice we use the rectified sigmoid.
 """
 function simple_sigmoid_fn(x, a, theta)
     1.0 / (1 + exp(-a * (x - theta)))
+end
+
+function inverse_simple_sigmoid_fn(fx, a, theta)
+    - (1 / a) * log((1 / fx) - 1) + theta
 end
 
 function zeroed_sigmoid_fn(x, a, theta)
@@ -127,7 +133,9 @@ function nonnegative_everywhere(fsig::AbstractSigmoidNonlinearityParameter{T},bs
 end
 
 ### Difference of Sigmoids
-struct DifferenceOfSigmoidsParameter{T,S<:AbstractSigmoidNonlinearityParameter{T}} <: AbstractNonlinearityParameter{T}
+abstract type AbstractDifferenceOfSigmoidsParameter{T} <: AbstractNonlinearityParameter{T} end
+abstract type AbstractDifferenceOfSigmoidsAction{T} <: AbstractNonlinearityAction{T} end
+struct DifferenceOfSigmoidsParameter{T,S<:AbstractSigmoidNonlinearityParameter{T}} <: AbstractDifferenceOfSigmoidsParameter{T}
     firing_sigmoid::S
     blocking_sigmoid::S
     function DifferenceOfSigmoidsParameter(fsig::S,
@@ -146,10 +154,12 @@ DifferenceOfSigmoidsParameter(::Missing, ::Missing) = missing
 
 DifferenceOfSigmoidsParameter(sigmoid_type=RectifiedSigmoidNonlinearity; firing_a, firing_θ, blocking_a, blocking_θ) = DifferenceOfSigmoidsParameter(sigmoid_type(; θ=firing_θ,a=firing_a), sigmoid_type(; θ=blocking_θ,a=blocking_a))
 
+get_firing_sigmoid(dosp::DifferenceOfSigmoidsParameter) = dosp.firing_sigmoid
+get_blocking_sigmoid(dosp::DifferenceOfSigmoidsParameter) = dosp.blocking_sigmoid
 
 
 
-struct DifferenceOfSigmoids{T,DOSP<:DifferenceOfSigmoidsParameter{T},ARR} <: AbstractNonlinearityAction{T}
+struct DifferenceOfSigmoids{T,DOSP<:DifferenceOfSigmoidsParameter{T},ARR} <: AbstractDifferenceOfSigmoidsAction{T}
     dosp::DOSP
     scratch::ARR
 end
@@ -162,7 +172,7 @@ end
 
 
 
-struct NormedDifferenceOfSigmoidsParameter{T,S<:AbstractSigmoidNonlinearityParameter{T},DOSP<:DifferenceOfSigmoidsParameter{T,S}} <: AbstractNonlinearityParameter{T}
+struct NormedDifferenceOfSigmoidsParameter{T,S<:AbstractSigmoidNonlinearityParameter{T},DOSP<:DifferenceOfSigmoidsParameter{T,S}} <: AbstractDifferenceOfSigmoidsParameter{T}
     dosp::DOSP
     function NormedDifferenceOfSigmoidsParameter(dos::DOSP) where {T, S<:Union{RectifiedSigmoidNonlinearity{T},RectifiedZeroedSigmoidNonlinearity{T}}, DOSP<:DifferenceOfSigmoidsParameter{T,S}}
         # enforce that rectified sigmoids are still rectified
@@ -171,6 +181,9 @@ struct NormedDifferenceOfSigmoidsParameter{T,S<:AbstractSigmoidNonlinearityParam
     NormedDifferenceOfSigmoidsParameter(firing, blocking) = NormedDifferenceOfSigmoidsParameter(DifferenceOfSigmoidsParameter(firing, blocking))
     NormedDifferenceOfSigmoidsParameter(::Missing) = missing
 end
+
+get_firing_sigmoid(ndosp::NormedDifferenceOfSigmoidsParameter) = get_firing_sigmoid(ndosp.dosp)
+get_blocking_sigmoid(ndosp::NormedDifferenceOfSigmoidsParameter) = get_blocking_sigmoid(ndosp.dosp)
 
 function NormedDifferenceOfSigmoidsParameter(sigmoid_type=RectifiedSigmoidNonlinearity; firing_a, firing_θ, blocking_a, blocking_θ) 
     NormedDifferenceOfSigmoidsParameter(
@@ -183,7 +196,7 @@ function NormedDifferenceOfSigmoidsParameter(sigmoid_type=RectifiedSigmoidNonlin
         )
 end
 
-struct NormedDifferenceOfSigmoids{T,DOS<:DifferenceOfSigmoids{T}} <: AbstractNonlinearityAction{T}
+struct NormedDifferenceOfSigmoids{T,DOS<:DifferenceOfSigmoids{T}} <: AbstractDifferenceOfSigmoidsAction{T}
     dos::DOS
     norm_factor::T
 end

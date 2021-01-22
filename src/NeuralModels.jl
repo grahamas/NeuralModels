@@ -27,7 +27,9 @@ export AbstractNonlinearityParameter,
     DifferenceOfSigmoidsParameter,
     DifferenceOfSigmoids,
     NormedDifferenceOfSigmoidsParameter,
-    NormedDifferenceOfSigmoids
+    NormedDifferenceOfSigmoids,
+    AbstractDifferenceOfSigmoidsAction,
+    AbstractDifferenceOfSigmoidsParameter
 
 export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
 
