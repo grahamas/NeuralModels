@@ -210,7 +210,11 @@ function calc_norm_factor(dosp::DifferenceOfSigmoidsParameter{T}) where T
         dos(x)
         return -only(x)  # want max
     end
-    opt_result = optimize(call_dos, T[1.0], BFGS())
+    θf = get_firing_sigmoid(dosp).θ
+    θb = get_blocking_sigmoid(dosp).θ
+    best_guess = (θb - θf) / 2 + θf
+    # FIXME if af == ab, then best_guess is correct and we can skip optim
+    opt_result = optimize(call_dos, T[best_guess], BFGS())
     opt_maximum = -Optim.minimum(opt_result)
     opt_minimizer = Optim.minimizer(opt_result)
     @assert only(opt_minimizer) > 0.0

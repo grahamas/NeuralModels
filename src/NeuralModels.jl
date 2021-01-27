@@ -28,6 +28,8 @@ export AbstractNonlinearityParameter,
     DifferenceOfSigmoids,
     NormedDifferenceOfSigmoidsParameter,
     NormedDifferenceOfSigmoids,
+    AbstractSigmoidNonlinearityAction,
+    AbstractSigmoidNonlinearityParameter,
     AbstractDifferenceOfSigmoidsAction,
     AbstractDifferenceOfSigmoidsParameter
 
