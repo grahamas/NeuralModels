@@ -40,6 +40,8 @@ export make_mutator
 export AbstractTransientBumpStimulusParameter, TransientBumpStimulusAction,
     CircleStimulusParameter, RectangleStimulusParameter
 
+export stimulus_duration
+
 include("helpers.jl")
 include("neural_data.jl")
 include("connectivity.jl")

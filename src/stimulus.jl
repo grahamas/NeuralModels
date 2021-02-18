@@ -25,6 +25,9 @@ function (bump::TransientBumpStimulusAction{T,N})(val::AbstractArray, ignored, t
         end
     end
 end
+function stimulus_duration(stim::AbstractTransientBumpStimulusParameter)
+    stim.time_windows[end][2]
+end
 
 
 struct CircleStimulusParameter{T} <: AbstractTransientBumpStimulusParameter{T}
