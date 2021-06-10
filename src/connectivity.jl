@@ -57,7 +57,6 @@ function (a::FFTAction)(output::AbstractArray, input::StridedArray, ignored_t)
     fftshift!(a.buffer_shift, a.buffer_real)
     output .+= a.buffer_shift
 end
-using AxisIndices
 function (a::FFTAction)(output::AbstractArray, input::AxisArray, ignored_t)
     mul!(a.buffer_complex, a.fft_op, parent(input))
     a.buffer_complex .*= a.kernel
