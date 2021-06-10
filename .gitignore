@@ -2,3 +2,5 @@
 *.ipynb
 
 *.mem
+
+Manifest.toml
