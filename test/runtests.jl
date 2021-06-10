@@ -165,6 +165,13 @@ end
 
 @testset "Nonlinearity" begin
     n_points, extent, dx, mid_point, circle, circle_zeros = make_testing_lattice(n_points=100, type=PeriodicLattice{Float64,1})
+    @testset "Binary switch" begin
+        @test binary_switch_off_on(0., 1.) == 0.
+        @test binary_switch_off_on(2., 1.) == 1.
+        @test binary_switch_off_on_off(0., 1., 3.) == 0.
+        @test binary_switch_off_on_off(2., 1., 3.) == 1.
+        @test binary_switch_off_on_off(4., 1., 3.) == 0.
+    end
     @testset "Sigmoid" begin
         sn = RectifiedSigmoidNonlinearity(a=1.0, θ=5.0)
         test_vals = [-100.0, 0.0, 0.01, 5.0, 200.0]

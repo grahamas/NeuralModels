@@ -8,16 +8,33 @@ using MacroTools: splitdef, combinedef, splitarg
 using StaticArrays
 using FFTW
 using LinearAlgebra
+using Optim
+
+export make_mutator
 
 
+include("helpers.jl")
+include("connectivity.jl")
 
-export AbstractConnectivityParameter, AbstractConnectivityAction
+export AbstractConnectivityParameter, AbstractConnectivityAction,
+    GaussianConnectivityParameter, ExpAbsSumDecayingConnectivityParameter, 
+    AbstractExpDecayingConnectivityParameter, FFTParameter, FFTAction,
+    directed_weights
 
-# Exporting Connectivities
-export GaussianConnectivityParameter, ExpAbsSumDecayingConnectivityParameter, directed_weights,
-    AbstractExpDecayingConnectivityParameter, FFTParameter, FFTAction
+include("nonlinearity_functions.jl")
 
-# Exporting Nonlinearities
+export binary_switch_off_on, binary_switch_off_on_off,
+    simple_sigmoid, inverse_simple_sigmoid, zeroed_sigmoid,
+    rectified_zeroed_sigmoid, rectified_unzeroed_sigmoid,
+    sech2,
+    gaussian,
+    difference_of_simple_sigmoids,
+    product_of_simple_sigmoids
+
+include("nonlinearity_wrappers.jl")
+
+export get_firing_sigmoid, get_blocking_sigmoid
+
 export AbstractNonlinearityParameter,
     AbstractNonlinearityAction,
     SimpleSigmoidNonlinearity,
@@ -33,18 +50,10 @@ export AbstractNonlinearityParameter,
     AbstractDifferenceOfSigmoidsAction,
     AbstractDifferenceOfSigmoidsParameter
 
-export AbstractHeterogeneousNeuralData, AbstractHomogeneousNeuralData
-
-export make_mutator
+include("stimulus.jl")
 
 export AbstractTransientBumpStimulusParameter, TransientBumpStimulusAction,
     CircleStimulusParameter, RectangleStimulusParameter
-
 export stimulus_duration
 
-include("helpers.jl")
-include("neural_data.jl")
-include("connectivity.jl")
-include("nonlinearity.jl")
-include("stimulus.jl")
 end # module
