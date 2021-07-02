@@ -572,7 +572,7 @@ for (i,n) in enumerate(test_ns)
 end
 
 scatter(test_ns, fft_diffs, labels=:fft, title="mean sq error (2D)",
-    xlabel="sqrt(# bins)", ylabel="mse(theory, numeric)") |> display
+    xlabel="sqrt(# bins)", ylabel="rmse(theory, numeric)") |> display
 
 # scatter(test_ns, fft_diffs, labels=:fft, title="norm diffs (2D)",
 #     xlabel="sqrt(# bins)", ylabel="max(sqerr / theory)") |> display
@@ -583,7 +583,7 @@ scatter(test_ns, fft_diffs, labels=:fft, title="mean sq error (2D)",
     
 
 # %%
-savefig("mse2d.png")
+savefig("rmse2d.png")
 
 # %%
 n_points = (901,901)

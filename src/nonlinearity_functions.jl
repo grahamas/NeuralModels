@@ -55,8 +55,8 @@ end
 
 # should go to 1 if you want there to exist a condition where 
 # all cells fire. Doesn't make sense to go above 1.
-function gaussian(x, sd, θ, a=1.)
-    a * exp(-0.5((x - θ) / sd)^2 ) 
+function gaussian(x, sd, θ, A=1.)
+    A * exp(-0.5((x - θ) / sd)^2 ) 
 end
 
 ############## Difference of Sigmoids ##############
