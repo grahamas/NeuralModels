@@ -71,4 +71,14 @@ function product_of_simple_sigmoids(x, a_up, θ_up, a_down, θ_down)
     simple_sigmoid(x, a_up, θ_up) * (1-simple_sigmoid(x, a_down, θ_down))
 end
 
+############## Error function ##############
+using SpecialFunctions
+function SpecialFunctions.erf(x, σ, μ, A=1.)
+    A * erf((x - μ) / (sqrt(2) * σ))
+end
+
+function difference_of_erfs(x, σ_up, μ_up, σ_down, μ_down)
+    erf(x, σ_up, μ_up) - erf(x, σ_down, μ_down)
+end
+
 ########################################################

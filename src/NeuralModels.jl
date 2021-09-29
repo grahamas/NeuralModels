@@ -34,7 +34,7 @@ export binary_switch_off_on, binary_switch_off_on_off,
 
 include("nonlinearity_wrappers.jl")
 
-export get_firing_sigmoid, get_blocking_sigmoid
+export get_firing_fn, get_blocking_fn
 
 export AbstractNonlinearityParameter,
     AbstractNonlinearityAction,
@@ -49,7 +49,14 @@ export AbstractNonlinearityParameter,
     AbstractSigmoidNonlinearityAction,
     AbstractSigmoidNonlinearityParameter,
     AbstractDifferenceOfSigmoidsAction,
-    AbstractDifferenceOfSigmoidsParameter
+    AbstractDifferenceOfSigmoidsParameter,
+    AbstractDifferenceOfErfsAction,
+    AbstractDifferenceOfErfsParameter,
+    AbstractErfNonlinearityAction,
+    AbstractErfNonlinearityParameter,
+    ErfNonlinearity,
+    DifferenceOfErfs,
+    DifferenceOfErfsParameter
 
 include("stimulus.jl")
 
