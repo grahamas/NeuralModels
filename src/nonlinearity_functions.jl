@@ -73,12 +73,12 @@ end
 
 ############## Error function ##############
 using SpecialFunctions
-function SpecialFunctions.erf(x, σ, μ, A=1.)
+function shifted_erf(x, σ, μ, A=1.)
     A * erf((x - μ) / (sqrt(2) * σ))
 end
 
 function difference_of_erfs(x, σ_up, μ_up, σ_down, μ_down)
-    erf(x, σ_up, μ_up) - erf(x, σ_down, μ_down)
+    shifted_erf(x, σ_up, μ_up) - shifted_erf(x, σ_down, μ_down)
 end
 
 ########################################################

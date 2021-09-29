@@ -30,7 +30,9 @@ export binary_switch_off_on, binary_switch_off_on_off,
     sech2,
     gaussian,
     difference_of_simple_sigmoids,
-    product_of_simple_sigmoids
+    product_of_simple_sigmoids,
+    shifted_erf,
+    difference_of_erfs
 
 include("nonlinearity_wrappers.jl")
 
