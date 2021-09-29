@@ -210,7 +210,7 @@ function erf_σ_from_sigmoid_a(a)
     # erf((x - μ) / σ) = tanh(√π log(2) (x - μ) / σ)
     # √π log(2) (x - μ) / σ = a (x - μ)
     # σ = √π log(2) / a
-    σ = sqrt(π) log(2) / a
+    σ = sqrt(π) * log(2) / a
     return σ
 end
 function ErfNonlinearity(; a=nothing, θ=nothing, σ=nothing, μ=nothing)
