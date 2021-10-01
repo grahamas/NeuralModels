@@ -221,7 +221,7 @@ function ErfNonlinearity(; a=nothing, θ=nothing, σ=nothing, μ=nothing)
     end
     ErfNonlinearity(σ,μ)
 end
-(sn::ErfNonlinearity)(output::AbstractArray, ignored_source=nothing, ignored_t=nothing) = output .= erf.(output,sn.σ,sn.μ)
+(sn::ErfNonlinearity)(output::AbstractArray, ignored_source=nothing, ignored_t=nothing) = output .=  shifted_erf.(output,sn.σ,sn.μ)
 
 ############# Difference of Erf ################
 
@@ -255,14 +255,13 @@ struct DifferenceOfErfsParameter{T,S<:AbstractErfNonlinearityParameter{T}} <: Ab
     firing_erf::S
     blocking_erf::S
     function DifferenceOfErfsParameter(f_erf::S,
-                                   b_erf::S) where {T, S<:Union{RectifiedSigmoidNonlinearity{T},RectifiedZeroedSigmoidNonlinearity{T}}}
+                                   b_erf::S) where {T, S<:AbstractErfNonlinearityParameter{T}}
         # enforce that rectified sigmoids are still rectified
         if !nonnegative_everywhere(f_erf, b_erf)
             return missing
         end
         new{T,S}(f_erf,b_erf)
     end
-    DifferenceOfErfsParameter(f_erf::S,b_erf::S) where {T, S<:AbstractSigmoidNonlinearityParameter{T}} = new{T,S}(f_erf, b_erf)
 end
 DifferenceOfErfsParameter(::Any, ::Missing) = missing
 DifferenceOfErfsParameter(::Missing, ::Any) = missing
