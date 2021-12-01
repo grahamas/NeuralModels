@@ -9,7 +9,6 @@ using StaticArrays
 using FFTW
 using LinearAlgebra
 using Optim
-using AxisIndices
 
 export make_mutator
 

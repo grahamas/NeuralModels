@@ -49,16 +49,16 @@ end
 #function (a::FFTAction)(output::AbstractArray, input::AbstractArray, ignored_t)
 #        output .+= fftshift(real(a.ifft_op * ((a.fft_op * input) .* a.kernel)))
 #end
-function (a::FFTAction)(output::AbstractArray, input::StridedArray, ignored_t)
-    @show "not axisindices"
+# function (a::FFTAction)(output::AbstractArray, input::StridedArray, ignored_t)
+#     @show "not axisindices"
+#     mul!(a.buffer_complex, a.fft_op, input)
+#     a.buffer_complex .*= a.kernel
+#     mul!(a.buffer_real, a.ifft_op, a.buffer_complex)
+#     fftshift!(a.buffer_shift, a.buffer_real)
+#     output .+= a.buffer_shift
+# end
+function (a::FFTAction)(output::AbstractArray, input::AbstractArray, ignored_t)
     mul!(a.buffer_complex, a.fft_op, input)
-    a.buffer_complex .*= a.kernel
-    mul!(a.buffer_real, a.ifft_op, a.buffer_complex)
-    fftshift!(a.buffer_shift, a.buffer_real)
-    output .+= a.buffer_shift
-end
-function (a::FFTAction)(output::AbstractArray, input::AxisArray, ignored_t)
-    mul!(a.buffer_complex, a.fft_op, parent(input))
     a.buffer_complex .*= a.kernel
     mul!(a.buffer_real, a.ifft_op, a.buffer_complex)
     fftshift!(a.buffer_shift, a.buffer_real)
