@@ -2,9 +2,7 @@ module NeuralModels
 
 using Simulation73
 using Parameters
-using RecursiveArrayTools
-#using TensorOperations
-using MacroTools: splitdef, combinedef, splitarg
+#using RecursiveArrayTools
 using StaticArrays
 using FFTW
 using LinearAlgebra
