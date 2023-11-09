@@ -16,11 +16,7 @@ end
     strength::Array{T,N}
 end
 function (ramping::RampingStimulusAction{T,N})(val::AbstractArray{T,N}, ignored, t) where {T,N}
-    @show t
-    @show ramping.start
-    @show ramping.stop
     proportion = min(ramping.stop - ramping.start, max(0, t - ramping.start)) / (ramping.stop - ramping.start)
-    @show proportion
     val .+= proportion .* ramping.strength
 end
 
