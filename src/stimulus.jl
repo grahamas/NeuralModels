@@ -1,6 +1,29 @@
 
 # Include initial values since they'll have similar properties to stimuli, save time.
 
+@kwdef struct RampingStimulusParameter{T} <: AbstractStimulusParameter{T}
+    start::T
+    stop::T
+    strength::T
+end
+function (rp::RampingStimulusParameter{T})(space::AbstractSpace{T,N}) where {T,N}
+    ramp_str = rp.strength .+ zero(space)
+    return RampingStimulusAction{T,N}(rp.start, rp.stop, ramp_str)
+end
+@kwdef struct RampingStimulusAction{T,N} <: AbstractStimulusAction{T,N}
+    start::T
+    stop::T
+    strength::Array{T,N}
+end
+function (ramping::RampingStimulusAction{T,N})(val::AbstractArray{T,N}, ignored, t) where {T,N}
+    @show t
+    @show ramping.start
+    @show ramping.stop
+    proportion = min(ramping.stop - ramping.start, max(0, t - ramping.start)) / (ramping.stop - ramping.start)
+    @show proportion
+    val .+= proportion .* ramping.strength
+end
+
 ### Transient bumps ###
 # Subtypes of TransientBumpStimulusParameter generate TransientBumpStimulusActions (NOT subtypes)
 abstract type AbstractTransientBumpStimulusParameter{T} <: AbstractStimulusParameter{T} end

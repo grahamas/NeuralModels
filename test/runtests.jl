@@ -72,6 +72,38 @@ end
         @test all(combined_test_early .== summed_test)
         @test all(combined_test_late .== thin_test)
     end
+
+    @testset "Ramping" begin
+        n_points_dx1 = 101
+        extent_dx1 = 300.0
+        line_dx1 = CompactLattice{Float64,1}(; n_points=(n_points_dx1,), extent=(extent_dx1,))
+        single_pop = zeros(size(line_dx1)...)
+        stim_start = 1.0
+        stim_stop = 2.0
+        stim_str = 5.0
+        ramping_stim = RampingStimulusParameter{Float64}(stim_start, stim_stop, stim_str)
+        nostim = NoStimulusParameter{Float64}()
+
+        stim = ramping_stim
+        stim_action = stim(line_dx1)
+        this_pop = copy(single_pop)
+        @test_nowarn stim_action(this_pop, this_pop, stim_start - 1)
+        @test all(this_pop .== 0.)
+        @show this_pop
+        @show stim_action.strength
+        @test_nowarn stim_action(this_pop, this_pop, (stim_stop - stim_start) /2 + stim_start)
+        @test all(this_pop .== stim_str / 2)
+
+        pops_stim = pops([ramping_stim, nostim])
+        pops_stim_action = pops_stim(line_dx1)
+        two_pops = population_repeat(single_pop, 2)
+        @test_nowarn pops_stim_action(two_pops, two_pops, stim_start - 1)
+        @test all(two_pops .== 0.)
+        @show two_pops
+        @test_nowarn pops_stim_action(two_pops, two_pops, (stim_stop - stim_start) /2 + stim_start)
+        @test all(two_pops[:,1] .== stim_str / 2)
+        @test all(two_pops[:,2] .== 0.0)
+    end
 end
 
 

@@ -55,7 +55,9 @@ export AbstractNonlinearityParameter,
     AbstractErfNonlinearityParameter,
     ErfNonlinearity,
     DifferenceOfErfs,
-    DifferenceOfErfsParameter
+    DifferenceOfErfsParameter,
+    RampingStimulusParameter,
+    RampingStimulusAction
 
 include("stimulus.jl")
 
